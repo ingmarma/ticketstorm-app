@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TicketStorm — Cuestionario de Evaluación</title>
+<link rel="stylesheet" href="https://unpkg.com/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<style>
+  :root {
+    --bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--bg4:#0a0e13;
+    --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.14);
+    --text:#e6edf3;--text2:#8b949e;--text3:#6e7681;
+    --blue:#58a6ff;--blue-bg:rgba(88,166,255,.08);--blue-b:rgba(88,166,255,.22);
+    --teal:#3fb950;--teal-bg:rgba(63,185,80,.08);--teal-b:rgba(63,185,80,.22);
+    --purple:#d2a8ff;--purple-bg:rgba(210,168,255,.08);--purple-b:rgba(210,168,255,.22);
+    --amber:#e3b341;--amber-bg:rgba(227,179,65,.08);--amber-b:rgba(227,179,65,.22);
+    --coral:#f78166;--coral-bg:rgba(247,129,102,.08);--coral-b:rgba(247,129,102,.22);
+    --pink:#f778ba;--pink-bg:rgba(247,120,186,.08);--pink-b:rgba(247,120,186,.22);
+    --red:#ff7b72;--red-bg:rgba(255,123,114,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI',sans-serif;font-size:13px;line-height:1.5}
+
+  .header{padding:24px 32px 20px;border-bottom:1px solid var(--border)}
+  .tag{display:inline-flex;align-items:center;gap:6px;background:var(--coral-bg);border:1px solid var(--coral-b);color:var(--coral);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin-bottom:10px}
+  h1{font-size:20px;font-weight:700;color:var(--text);margin-bottom:5px}
+  .hdesc{color:var(--text2);font-size:12px;max-width:760px;line-height:1.6}
+
+  /* QUESTION NAV */
+  .qnav{display:flex;flex-wrap:wrap;gap:0;padding:0 32px;border-bottom:1px solid var(--border);background:var(--bg2);overflow-x:auto}
+  .qnav-item{padding:11px 18px;font-size:12px;font-weight:500;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:.15s;user-select:none;display:flex;align-items:center;gap:8px;white-space:nowrap}
+  .qnav-item:hover{color:var(--text2)}
+  .qnav-item.active{color:var(--text)}
+  .qnav-item.active.q1{border-bottom-color:var(--coral)}
+  .qnav-item.active.q2{border-bottom-color:var(--teal)}
+  .qnav-item.active.q3{border-bottom-color:var(--amber)}
+  .qnav-item.active.q4{border-bottom-color:var(--purple)}
+  .qnav-item.active.q5{border-bottom-color:var(--blue)}
+  .qnum{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+  .qnav-item.q1 .qnum{background:var(--coral-bg);color:var(--coral)}
+  .qnav-item.q2 .qnum{background:var(--teal-bg);color:var(--teal)}
+  .qnav-item.q3 .qnum{background:var(--amber-bg);color:var(--amber)}
+  .qnav-item.q4 .qnum{background:var(--purple-bg);color:var(--purple)}
+  .qnav-item.q5 .qnum{background:var(--blue-bg);color:var(--blue)}
+
+  /* VIEW */
+  .view{display:none;padding:24px 32px 40px;max-width:1100px}
+  .view.active{display:block}
+
+  /* QUESTION HEADER */
+  .qheader{padding:18px 22px;border-radius:14px;margin-bottom:24px;border:1px solid}
+  .qheader.q1{background:rgba(247,129,102,.05);border-color:var(--coral-b)}
+  .qheader.q2{background:rgba(63,185,80,.05);border-color:var(--teal-b)}
+  .qheader.q3{background:rgba(227,179,65,.05);border-color:var(--amber-b)}
+  .qheader.q4{background:rgba(210,168,255,.05);border-color:var(--purple-b)}
+  .qheader.q5{background:rgba(88,166,255,.05);border-color:var(--blue-b)}
+  .qlabel{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
+  .q1 .qlabel{color:var(--coral)}
+  .q2 .qlabel{color:var(--teal)}
+  .q3 .qlabel{color:var(--amber)}
+  .q4 .qlabel{color:var(--purple)}
+  .q5 .qlabel{color:var(--blue)}
+  .qtitle{font-size:16px;font-weight:700;color:var(--text);line-height:1.5}
+
+  /* CONTENT SECTIONS */
+  .section{margin-bottom:28px}
+  .section-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:8px;padding-bottom:7px;border-bottom:1px solid var(--border)}
+  .section-title i{font-size:14px}
+  .section-title.coral i{color:var(--coral)}
+  .section-title.teal i{color:var(--teal)}
+  .section-title.amber i{color:var(--amber)}
+  .section-title.purple i{color:var(--purple)}
+  .section-title.blue i{color:var(--blue)}
+  .section-title.pink i{color:var(--pink)}
+
+  .prose{font-size:13px;color:var(--text2);line-height:1.75}
+  .prose strong{color:var(--text);font-weight:600}
+  .prose code{font-family:'SF Mono',ui-monospace,monospace;font-size:12px;background:var(--bg3);color:var(--amber);padding:1px 7px;border-radius:4px;border:1px solid var(--border)}
+  .prose p{margin-bottom:12px}
+  .prose p:last-child{margin-bottom:0}
+
+  /* LAYER BOXES (anti-overbooking, resilience) */
+  .layer-grid{display:flex;flex-direction:column;gap:12px;margin:14px 0}
+  .layer-box{background:var(--bg2);border:1px solid var(--border);border-left:3px solid;border-radius:0 12px 12px 0;padding:14px 18px}
+  .layer-box.l1{border-left-color:var(--coral)}
+  .layer-box.l2{border-left-color:var(--amber)}
+  .layer-box.l3{border-left-color:var(--teal)}
+  .layer-box.l4{border-left-color:var(--purple)}
+  .layer-header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .layer-num{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+  .l1 .layer-num{background:var(--coral-bg);color:var(--coral)}
+  .l2 .layer-num{background:var(--amber-bg);color:var(--amber)}
+  .l3 .layer-num{background:var(--teal-bg);color:var(--teal)}
+  .l4 .layer-num{background:var(--purple-bg);color:var(--purple)}
+  .layer-title{font-size:13px;font-weight:700;color:var(--text)}
+  .layer-tech{font-size:10px;color:var(--text3);font-family:monospace;margin-top:1px}
+  .layer-content{font-size:12px;color:var(--text2);line-height:1.7;padding-left:36px}
+  .layer-content strong{color:var(--text)}
+  .layer-content code{font-family:monospace;font-size:11px;background:var(--bg3);color:var(--amber);padding:1px 5px;border-radius:3px}
+
+  /* CODE BLOCK */
+  .code-block{background:var(--bg4);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin:12px 0}
+  .code-block-header{padding:8px 14px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .code-block-label{font-size:11px;font-weight:600;color:var(--text2);font-family:monospace}
+  .code-block-tag{font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;background:var(--amber-bg);color:var(--amber);text-transform:uppercase;letter-spacing:.05em}
+  pre.code{padding:14px;overflow-x:auto;font-family:'SF Mono','Fira Code',ui-monospace,monospace;font-size:11px;line-height:1.7;color:var(--text2)}
+  .kw{color:#ff7b72}
+  .ty{color:#79c0ff}
+  .st{color:#a5d6ff}
+  .cm{color:#6e7681;font-style:italic}
+  .fn{color:#d2a8ff}
+
+  /* TABLE */
+  .answ-table{width:100%;border-collapse:collapse;margin:12px 0;background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+  .answ-table th{background:var(--bg3);padding:9px 14px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)}
+  .answ-table td{padding:9px 14px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:top;color:var(--text2)}
+  .answ-table tr:last-child td{border-bottom:none}
+  .answ-table strong{color:var(--text)}
+
+  /* CAP TRIANGLE */
+  .cap-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
+  .cap-card{background:var(--bg2);border:1px solid;border-radius:12px;padding:14px 16px}
+  .cap-card.cp{border-color:var(--coral-b)}
+  .cap-card.ap{border-color:var(--teal-b)}
+  .cap-letter{font-size:24px;font-weight:800;letter-spacing:-0.03em;margin-bottom:4px}
+  .cap-card.cp .cap-letter{color:var(--coral)}
+  .cap-card.ap .cap-letter{color:var(--teal)}
+  .cap-title{font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px}
+  .cap-services{font-size:11px;color:var(--text2);line-height:1.7}
+  .cap-services strong{color:var(--text)}
+
+  /* TAKEAWAY BOX */
+  .takeaway{background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:14px 18px;margin-top:20px;display:flex;gap:12px;align-items:flex-start}
+  .takeaway i{color:var(--amber);font-size:18px;margin-top:1px;flex-shrink:0}
+  .takeaway-text{font-size:12px;color:var(--text2);line-height:1.7}
+  .takeaway-text strong{color:var(--text)}
+
+  /* SLO TABLE */
+  .slo-box{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 18px;margin:12px 0}
+  .slo-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px}
+  .slo-row:last-child{border-bottom:none}
+  .slo-name{color:var(--text2)}
+  .slo-name strong{color:var(--text)}
+  .slo-val{font-family:monospace;font-weight:600;color:var(--teal)}
+
+  footer{text-align:center;color:var(--text3);font-size:11px;padding:20px 32px;border-top:1px solid var(--border)}
+
+  @media(max-width:720px){.cap-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="tag"><i class="ti ti-clipboard-check" aria-hidden="true"></i> Semana 3 — Entregable 2 de 2</div>
+  <h1>TicketStorm — Cuestionario de Evaluación</h1>
+  <p class="hdesc">Respuestas a las 5 preguntas oficiales del Bootcamp. Cada respuesta cubre la arquitectura completa con detalle técnico para que un revisor pueda evaluar cobertura y profundidad del análisis.</p>
+</div>
+
+<div class="qnav">
+  <div class="qnav-item q1 active" onclick="sw(1)"><div class="qnum">1</div> Anti-overbooking</div>
+  <div class="qnav-item q2" onclick="sw(2)"><div class="qnum">2</div> Resiliencia</div>
+  <div class="qnav-item q3" onclick="sw(3)"><div class="qnum">3</div> Concurrencia</div>
+  <div class="qnav-item q4" onclick="sw(4)"><div class="qnum">4</div> Llegada masiva</div>
+  <div class="qnav-item q5" onclick="sw(5)"><div class="qnum">5</div> CAP Theorem</div>
+</div>
+
+<!-- ═══════════════ PREGUNTA 1: OVERBOOKING ═══════════════ -->
+<div class="view active" id="view-1">
+  <div class="qheader q1">
+    <div class="qlabel">Pregunta 1</div>
+    <div class="qtitle">Describe de manera detallada cómo tu sistema está protegido contra overbooking</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title coral"><i class="ti ti-shield-lock" aria-hidden="true"></i> Defensa en profundidad — 4 capas independientes</div>
+    <p class="prose">El overbooking en TicketStorm es <strong>imposible por diseño, no por convención</strong>. La estrategia es defense in depth: cuatro capas independientes, cada una capaz de prevenir overbooking por sí sola. Si una falla, las otras tres lo capturan. Las capas operan en orden de latencia ascendente — rechazamos rápido en Redis antes de tocar la base de datos.</p>
+  </div>
+
+  <div class="layer-grid">
+
+    <div class="layer-box l1">
+      <div class="layer-header">
+        <div class="layer-num">1</div>
+        <div>
+          <div class="layer-title">Capa 1 — Lua script atómico en Redis</div>
+          <div class="layer-tech">EVAL · BITMAP · ~0.5ms latencia</div>
+        </div>
+      </div>
+      <div class="layer-content">
+        <p>La disponibilidad de asientos vive en Redis como un <strong>bitmap por sección</strong> (un bit por asiento: 0=disponible, 1=ocupado). El check-and-set se hace con un <strong>Lua script ejecutado atómicamente por Redis</strong> — entre el GETBIT y el SETBIT no puede ejecutarse ningún otro comando. Race condition matemáticamente imposible en esta capa.</p>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-block-label">reserve_seat.lua — atómico por contrato Redis</span><span class="code-block-tag">Lua</span></div>
+          <pre class="code"><span class="kw">local</span> bit_value = redis.call(<span class="st">'GETBIT'</span>, KEYS[1], ARGV[1])
+<span class="kw">if</span> bit_value == 0 <span class="kw">then</span>
+    redis.call(<span class="st">'SETBIT'</span>, KEYS[1], ARGV[1], 1)
+    <span class="kw">return</span> 1  <span class="cm">-- éxito: asiento reservado</span>
+<span class="kw">else</span>
+    <span class="kw">return</span> 0  <span class="cm">-- falla: asiento ya ocupado, rechazar</span>
+<span class="kw">end</span></pre>
+        </div>
+        <p>Para un venue de 50k asientos el bitmap ocupa ~6.25KB. <code>BITPOS</code> permite encontrar el primer asiento disponible en O(N) sobre bytes — practicamente instantáneo.</p>
+      </div>
+    </div>
+
+    <div class="layer-box l2">
+      <div class="layer-header">
+        <div class="layer-num">2</div>
+        <div>
+          <div class="layer-title">Capa 2 — Distributed Lock (Redisson Redlock)</div>
+          <div class="layer-tech">Redlock N=3 quorum=2 · TTL 5s · ~2ms latencia</div>
+        </div>
+      </div>
+      <div class="layer-content">
+        <p>Antes de escribir el evento <code>SeatReserved</code> en PostgreSQL, adquirimos un <strong>distributed lock con Redisson implementando el algoritmo Redlock</strong> sobre 3 nodos Redis independientes. El lock requiere quorum de 2 nodos para considerarse válido. TTL del lock: 5 segundos (suficiente para completar la operación). Si no se puede adquirir, retorno HTTP 503 y el cliente reintenta.</p>
+        <p>El lock token es un UUID único por cliente, validado en el unlock vía Lua script — esto previene que <strong>el cliente A libere el lock del cliente B</strong> si su operación tardó demasiado y el lock ya había expirado y sido re-adquirido.</p>
+      </div>
+    </div>
+
+    <div class="layer-box l3">
+      <div class="layer-header">
+        <div class="layer-num">3</div>
+        <div>
+          <div class="layer-title">Capa 3 — Pessimistic locking en PostgreSQL</div>
+          <div class="layer-tech">SELECT FOR UPDATE · DB-level guard · ~5ms latencia</div>
+        </div>
+      </div>
+      <div class="layer-content">
+        <p>Dentro de la transacción que escribe el evento <code>SeatReserved</code>, hacemos <code>SELECT FOR UPDATE</code> sobre la fila del asiento en <code>seat_projections</code>. Esto bloquea cualquier otra transacción que intente leer-para-modificar el mismo asiento hasta que commiteemos.</p>
+        <p>Esta capa cubre el caso (extremadamente improbable) de que Redis falle por completo — el sistema sigue siendo correcto a costa de mayor latencia, porque PostgreSQL se convierte en el único árbitro.</p>
+      </div>
+    </div>
+
+    <div class="layer-box l4">
+      <div class="layer-header">
+        <div class="layer-num">4</div>
+        <div>
+          <div class="layer-title">Capa 4 — UNIQUE constraint sobre Event Sourcing</div>
+          <div class="layer-tech">CONSTRAINT uq_aggregate_version · última guardia</div>
+        </div>
+      </div>
+      <div class="layer-content">
+        <p>El Event Store de Inventory tiene una constraint <code>UNIQUE (aggregate_id, aggregate_version)</code>. Si por algún bug catastrófico llegasen dos comandos a escribir la versión N+1 del mismo asiento, PostgreSQL rechaza el segundo con <code>23505 unique_violation</code>.</p>
+        <p>Esta es la <strong>capa de "última línea de defensa"</strong>: nunca debería activarse en operación normal, pero si lo hace, el sistema sigue siendo correcto y emitimos una alerta crítica en Grafana para investigación de raíz.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="section">
+    <div class="section-title coral"><i class="ti ti-clipboard-list" aria-hidden="true"></i> Garantías adicionales por Event Sourcing</div>
+    <p class="prose">El estado de cada asiento <strong>no es una columna mutable</strong> en una tabla; es la proyección del log inmutable de eventos. <strong>No existe</strong> <code>UPDATE seats SET status='RESERVED'</code> en el sistema. Solo existe <code>INSERT INTO inventory_events (event_type='SeatReserved', ...)</code>. Esto elimina toda una clase de bugs de race conditions en updates.</p>
+    <p class="prose">El invariante de dominio es: <strong>nunca pueden existir dos eventos <code>SeatReserved</code> activos para el mismo asiento</strong>. Un evento se considera "activo" si no ha sido seguido por <code>SeatReleased</code> o <code>SeatPurchased</code>. La proyección a <code>seat_projections</code> es eventualmente consistente con el log de eventos, pero el log es la fuente de verdad — si hay discrepancia, regeneramos la proyección desde el log.</p>
+  </div>
+
+  <div class="section">
+    <div class="section-title coral"><i class="ti ti-clock-exclamation" aria-hidden="true"></i> Manejo de expiración de reservas (TTL)</div>
+    <p class="prose">Cuando una reserva temporal expira (10 minutos sin pago), los asientos deben liberarse automáticamente. Esto se hace vía <strong>Redis keyspace notifications</strong>: cada reserva tiene una key <code>reservation:ttl:{id}</code> con EXPIRE 600. Cuando Redis emite el evento <code>expired</code>, un listener en Reservation Service consume y emite <code>ReservationExpired</code> en Kafka. Inventory consume ese evento y libera los asientos atravesando las mismas 4 capas en sentido inverso (Lua: SETBIT a 0, emit SeatReleased).</p>
+  </div>
+
+  <div class="takeaway">
+    <i class="ti ti-bulb" aria-hidden="true"></i>
+    <div class="takeaway-text"><strong>Resumen.</strong> Cuatro capas independientes hacen el overbooking imposible: Redis Lua atómico (rechazo rápido), Redlock distribuido (consistencia cross-instance), Postgres pessimistic lock (DB-level guard), UNIQUE constraint sobre Event Store (última guardia). Event Sourcing elimina la clase entera de bugs por estado mutable. Las reservas expiradas se liberan automáticamente vía Redis keyspace notifications.</div>
+  </div>
+</div>
+
+<!-- ═══════════════ PREGUNTA 2: RESILIENCIA ═══════════════ -->
+<div class="view" id="view-2">
+  <div class="qheader q2">
+    <div class="qlabel">Pregunta 2</div>
+    <div class="qtitle">Explica en qué partes del diseño de tu sistema integrarás capacidades resilientes, y de qué forma</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title teal"><i class="ti ti-shield-bolt" aria-hidden="true"></i> Filosofía: fail fast, recover gracefully</div>
+    <p class="prose">La resiliencia en TicketStorm está integrada en <strong>cada interacción cross-component</strong>, no agregada como afterthought. Toda llamada externa (red, gateway, DB, cache) usa al menos uno de estos patrones: Circuit Breaker, Retry con exponential backoff, Bulkhead, TimeLimiter, RateLimiter, o Fallback. La librería principal es <strong>Resilience4j</strong>, configurada declarativamente con annotations en Spring Boot.</p>
+  </div>
+
+  <div class="section">
+    <div class="section-title teal"><i class="ti ti-circle-dashed" aria-hidden="true"></i> Circuit Breaker — el patrón más importante</div>
+    <p class="prose">Cada servicio downstream tiene su circuit breaker configurado. Cuando un servicio comienza a fallar (ej: gateway de pago caído), el circuit breaker <strong>se abre</strong> y rechaza llamadas inmediatamente sin esperar timeout — esto <strong>previene el efecto dominó</strong> donde un servicio lento consume threads del caller y propaga la degradación. Sin circuit breaker, un fallo en Stripe podría tumbar todo el sistema de checkout en cascada.</p>
+    <table class="answ-table">
+      <thead><tr><th>Llamada</th><th>Threshold</th><th>Window</th><th>Wait open</th><th>Fallback</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Payment → Stripe/PayU</strong></td><td>50% errors / 5 calls</td><td>30s sliding</td><td>30s half-open</td><td>Queue para retry async</td></tr>
+        <tr><td><strong>Catalog → Elasticsearch</strong></td><td>50% errors / 10 calls</td><td>60s</td><td>15s</td><td>Query directo a PostgreSQL</td></tr>
+        <tr><td><strong>AI Discovery → Vertex AI</strong></td><td>30% errors / 5 calls</td><td>30s</td><td>30s</td><td>Búsqueda full-text fallback</td></tr>
+        <tr><td><strong>Payment → AI fraud scorer</strong></td><td>40% errors / 5 calls</td><td>20s</td><td>10s</td><td>fraud_score=0.5 (manual review)</td></tr>
+        <tr><td><strong>Gateway → cualquier servicio</strong></td><td>60% errors / 20 calls</td><td>60s</td><td>30s</td><td>503 Service Unavailable</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="section-title teal"><i class="ti ti-refresh" aria-hidden="true"></i> Retry con exponential backoff + jitter</div>
+    <p class="prose">Los reintentos solo se aplican a operaciones <strong>idempotentes</strong> o que tengan idempotency key. <strong>Exponential backoff con jitter</strong> (random component) previene "thundering herd" cuando un servicio se recupera y miles de clientes reintentan simultáneamente.</p>
+    <div class="code-block">
+      <div class="code-block-header"><span class="code-block-label">Resilience4j config — Payment retry</span><span class="code-block-tag">YAML</span></div>
+      <pre class="code"><span class="kw">resilience4j</span>.retry:
+  <span class="kw">instances</span>:
+    <span class="kw">payment-gateway</span>:
+      max-attempts: 4
+      wait-duration: 1s
+      exponential-backoff-multiplier: 2     <span class="cm"># 1s → 2s → 4s → 8s</span>
+      randomization-factor: 0.5             <span class="cm"># jitter ±50%</span>
+      retry-exceptions:
+        - org.springframework.web.client.ResourceAccessException
+        - java.net.SocketTimeoutException
+      ignore-exceptions:
+        - com.ticketstorm.payment.FraudRejectedException  <span class="cm"># no reintentar</span>
+        - com.ticketstorm.payment.InsufficientFundsException</pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title teal"><i class="ti ti-wall" aria-hidden="true"></i> Bulkhead — aislamiento de recursos</div>
+    <p class="prose">El patrón Bulkhead aísla pools de threads por tipo de operación crítica. Si las llamadas a Stripe se vuelven lentas, no consumen los threads disponibles para el resto del sistema. Implementación: <code>ThreadPoolBulkhead</code> de Resilience4j separa pools por servicio downstream.</p>
+    <ul style="padding-left:24px;margin-top:6px;color:var(--text2)">
+      <li style="margin-bottom:4px;font-size:12px"><strong style="color:var(--text)">Payment Service:</strong> 50 threads para gateway externo, 20 para fraud scorer, 30 para DB queries</li>
+      <li style="margin-bottom:4px;font-size:12px"><strong style="color:var(--text)">Reservation Service:</strong> 100 threads para Inventory calls, 50 para DB</li>
+      <li style="margin-bottom:4px;font-size:12px"><strong style="color:var(--text)">Catalog Service:</strong> 80 threads ES, 40 fallback DB — separación crítica durante incidentes</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <div class="section-title teal"><i class="ti ti-clock-stop" aria-hidden="true"></i> TimeLimiter — fail fast</div>
+    <p class="prose">Cada llamada externa tiene timeout estricto. Sin TimeLimiter, una request "colgada" puede ocupar un thread indefinidamente. Configuración:</p>
+    <ul style="padding-left:24px;margin-top:6px;color:var(--text2)">
+      <li style="margin-bottom:4px;font-size:12px"><strong style="color:var(--text)">Payment gateway:</strong> 5 segundos (alineado con SLO checkout p99 &lt; 500ms compuesto)</li>
+      <li style="margin-bottom:4px;font-size:12px"><strong style="color:var(--text)">Vertex AI:</strong> 10 segundos (RAG con embedding generation puede tardar)</li>
+      <li style="margin-bottom:4px;font-size:12px"><strong style="color:var(--text)">DB queries:</strong> 3 segundos (cualquier query más lenta indica problema)</li>
+      <li style="margin-bottom:4px;font-size:12px"><strong style="color:var(--text)">Redis operations:</strong> 200ms (estructuras simples deben ser sub-100ms)</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <div class="section-title teal"><i class="ti ti-mail-fast" aria-hidden="true"></i> Outbox Pattern — resiliencia de eventos</div>
+    <p class="prose">Sin Outbox, hay riesgo de inconsistencia: la transacción DB commit, pero el envío a Kafka falla → otros servicios nunca se enteran del cambio. <strong>Outbox lo previene</strong>: el evento se escribe en una tabla <code>outbox_events</code> en la <strong>misma transacción</strong> que el state change. Un worker separado lee la tabla y publica a Kafka. Si Kafka está caído, el worker reintenta indefinidamente sin afectar la operación principal. Garantía: at-least-once delivery (consumers son idempotentes).</p>
+  </div>
+
+  <div class="section">
+    <div class="section-title teal"><i class="ti ti-message-2-share" aria-hidden="true"></i> Saga compensatoria — resiliencia de transacciones distribuidas</div>
+    <p class="prose">En un flujo distribuido (Reservation → Inventory → Payment), si un paso falla en el medio, los pasos anteriores deben revertirse. <strong>El Saga coreografiado lo automatiza</strong>: si <code>PaymentFailed</code> es emitido, Inventory consume el evento y emite <code>SeatReleased</code> (compensación). Esto evita estado inconsistente sin requerir un orquestador central.</p>
+  </div>
+
+  <div class="section">
+    <div class="section-title teal"><i class="ti ti-letter-d" aria-hidden="true"></i> Dead Letter Topics — resiliencia ante poison messages</div>
+    <p class="prose">Cada topic Kafka crítico tiene un <strong>Dead Letter Topic (DLT)</strong> asociado. Si un consumer falla N veces procesando un mensaje (ej: payload corrupto, bug), el mensaje se envía al DLT en lugar de bloquear el partition. Esto previene que un mensaje "venenoso" detenga el procesamiento. Grafana alerta cuando un DLT recibe mensajes — investigación manual.</p>
+  </div>
+
+  <div class="section">
+    <div class="section-title teal"><i class="ti ti-cloud-storm" aria-hidden="true"></i> Multi-zone deployment + DR multi-cloud</div>
+    <p class="prose">GKE Autopilot multi-zone <code>us-central1-a/b/c</code> con PodAntiAffinity distribuye pods entre zonas — pérdida de una zona no afecta el servicio. PostgreSQL Cloud SQL en alta disponibilidad regional (primary + standby). Redis Memorystore replicado entre zonas. <strong>Disaster Recovery</strong>: replica asíncrona del Event Store a OCI (Oracle Cloud) — si GCP us-central1 cae completo, podemos hacer failover a OCI con RPO &lt; 5 minutos.</p>
+  </div>
+
+  <div class="section">
+    <div class="section-title teal"><i class="ti ti-gauge" aria-hidden="true"></i> SLOs definidos + error budget burn rate alerts</div>
+    <div class="slo-box">
+      <div class="slo-row"><div class="slo-name"><strong>Availability mensual:</strong> 99.9%</div><div class="slo-val">budget: 43.8 min/mes</div></div>
+      <div class="slo-row"><div class="slo-name"><strong>p99 search latency</strong></div><div class="slo-val">&lt; 200ms</div></div>
+      <div class="slo-row"><div class="slo-name"><strong>p99 checkout latency</strong></div><div class="slo-val">&lt; 500ms</div></div>
+      <div class="slo-row"><div class="slo-name"><strong>p99 queue join</strong></div><div class="slo-val">&lt; 100ms</div></div>
+      <div class="slo-row"><div class="slo-name"><strong>Queue WebSocket uptime</strong></div><div class="slo-val">&gt; 99.95%</div></div>
+    </div>
+    <p class="prose">Alertas configuradas con <strong>multi-window burn rate</strong> (recomendación de SRE book): fast burn (1h window — alerta si consume 2% del budget) y slow burn (3d window — alerta si tendencia consume 10%). Esto detecta tanto degradaciones rápidas como lentas.</p>
+  </div>
+
+  <div class="takeaway">
+    <i class="ti ti-bulb" aria-hidden="true"></i>
+    <div class="takeaway-text"><strong>Resumen.</strong> Resilience4j (CB, Retry, Bulkhead, TimeLimiter) en cada llamada cross-component. Outbox pattern para garantizar consistencia entre DB y Kafka. Saga compensatoria automatiza rollback de transacciones distribuidas. Dead Letter Topics protegen consumers de poison messages. Deploy multi-zone con DR multi-cloud en OCI. SLOs definidos con error budget burn rate alerts.</div>
+  </div>
+</div>
+
+<!-- ═══════════════ PREGUNTA 3: CONCURRENCIA ═══════════════ -->
+<div class="view" id="view-3">
+  <div class="qheader q3">
+    <div class="qlabel">Pregunta 3</div>
+    <div class="qtitle">Explica el uso de concurrencia en tu sistema, si es aplicable</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title amber"><i class="ti ti-arrows-shuffle" aria-hidden="true"></i> Tres modelos de concurrencia, uno por caso de uso</div>
+    <p class="prose">TicketStorm usa <strong>tres modelos de concurrencia distintos</strong>, cada uno seleccionado según el patrón del workload. No hay un modelo único óptimo para todo el sistema — la decisión por servicio es deliberada.</p>
+  </div>
+
+  <div class="layer-grid">
+
+    <div class="layer-box l1">
+      <div class="layer-header">
+        <div class="layer-num">A</div>
+        <div>
+          <div class="layer-title">Virtual Threads (Java 21 Project Loom) — para I/O blocking</div>
+          <div class="layer-tech">Catalog, Inventory, Reservation, Payment, Notification</div>
+        </div>
+      </div>
+      <div class="layer-content">
+        <p><strong>El cambio más impactante en Java de la última década.</strong> Un Virtual Thread cuesta ~1KB de memoria vs ~1MB de un platform thread. Permite escribir código blocking (try/catch, synchronous I/O) sin penalización de concurrencia. Spring Boot 3 con <code>spring.threads.virtual.enabled=true</code> usa VTs para el servlet container — cada request HTTP corre en su propio Virtual Thread.</p>
+        <p><strong>Por qué Virtual Threads y no WebFlux para estos servicios</strong>: el código de negocio (transacciones DB, llamadas HTTP, queries Kafka) es naturalmente imperativo. WebFlux exige Reactor (Mono/Flux) que es ergonómicamente costoso, debugging difícil, stack traces ilegibles. Virtual Threads dan la mayoría del beneficio (alta concurrencia) sin el costo (cambio de modelo mental).</p>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-block-label">Reservation Service — código blocking simple, alta concurrencia</span><span class="code-block-tag">Java 21</span></div>
+          <pre class="code"><span class="kw">@RestController</span>
+<span class="kw">public class</span> <span class="ty">ReservationController</span> {
+
+    <span class="kw">@PostMapping</span>(<span class="st">"/v1/reservations"</span>)
+    <span class="kw">public</span> <span class="ty">ReservationResponse</span> <span class="fn">create</span>(<span class="ty">@RequestBody</span> <span class="ty">CreateRequest</span> req) {
+        <span class="cm">// Spring asigna un Virtual Thread a este request automáticamente.</span>
+        <span class="cm">// Cada operación blocking (DB, Kafka, HTTP) suspende el VT, no el carrier.</span>
+        <span class="kw">var</span> seats = inventoryClient.checkAvailability(req.eventId(), req.items());
+        <span class="kw">var</span> reservation = repository.save(<span class="kw">new</span> <span class="ty">Reservation</span>(req));
+        kafkaTemplate.send(<span class="st">"tickets.reserved"</span>, reservation.toEvent());
+        <span class="kw">return</span> <span class="ty">ReservationResponse</span>.from(reservation);
+    }
+}</pre>
+        </div>
+        <p><strong>Caveat técnico:</strong> bloques <code>synchronized</code> hacen "pinning" del Virtual Thread al carrier thread (no se desmonta). Solución: reemplazar con <code>ReentrantLock</code>. ThreadLocals también son costosos (memoria por VT). El equipo está entrenado en estas restricciones.</p>
+      </div>
+    </div>
+
+    <div class="layer-box l2">
+      <div class="layer-header">
+        <div class="layer-num">B</div>
+        <div>
+          <div class="layer-title">Reactive (Spring WebFlux + Reactor) — para streams con backpressure</div>
+          <div class="layer-tech">Virtual Queue Service (WebSocket de 5M conexiones)</div>
+        </div>
+      </div>
+      <div class="layer-content">
+        <p>El Virtual Queue Service mantiene WebFlux porque el caso de uso lo justifica: <strong>5M conexiones WebSocket simultáneas con backpressure explícito</strong> al pushear updates de posición. Reactor gestiona elegantemente la composición de streams (Redis pub/sub → filter por user → WebSocket sink).</p>
+        <p>Virtual Threads serían viables aquí también, pero <strong>el modelo reactivo de Reactor encaja mejor con la naturaleza streaming del caso de uso</strong>: no solo se trata de N requests independientes, sino de un long-lived stream por usuario con eventos asíncronos del sistema.</p>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-block-label">VirtualQueueController — WebFlux reactive WebSocket</span><span class="code-block-tag">Reactor</span></div>
+          <pre class="code"><span class="kw">@Component</span>
+<span class="kw">public class</span> <span class="ty">QueueWebSocketHandler</span> <span class="kw">implements</span> <span class="ty">WebSocketHandler</span> {
+
+    <span class="kw">@Override</span>
+    <span class="kw">public</span> <span class="ty">Mono</span>&lt;<span class="ty">Void</span>&gt; <span class="fn">handle</span>(<span class="ty">WebSocketSession</span> session) {
+        <span class="kw">var</span> eventId = extractEventId(session);
+        <span class="kw">var</span> userId = extractUserId(session);
+
+        <span class="kw">var</span> positionUpdates = queueService.streamPositionUpdates(eventId, userId)
+            .map(pos -> <span class="ty">Json</span>.toJson(<span class="kw">new</span> <span class="ty">PositionUpdate</span>(pos.position(), pos.totalInQueue())))
+            .map(session::textMessage)
+            .onBackpressureBuffer(100, <span class="ty">BufferOverflowStrategy</span>.DROP_OLDEST);
+
+        <span class="kw">return</span> session.send(positionUpdates);
+    }
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="layer-box l3">
+      <div class="layer-header">
+        <div class="layer-num">C</div>
+        <div>
+          <div class="layer-title">Structured Concurrency (JEP 453) — fan-out paralelo</div>
+          <div class="layer-tech">Inventory Service — verificación paralela de N asientos</div>
+        </div>
+      </div>
+      <div class="layer-content">
+        <p>Cuando un usuario reserva múltiples asientos (ej: 4 tickets), debemos verificar disponibilidad de los 4 en paralelo, no secuencialmente. <strong>Structured Concurrency</strong> (estable en Java 25, preview en 21) permite fan-out con cleanup automático: si una sub-task falla, las demás se cancelan automáticamente.</p>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-block-label">InventoryService — verificación paralela de seats</span><span class="code-block-tag">JEP 453</span></div>
+          <pre class="code"><span class="kw">public</span> <span class="ty">List</span>&lt;<span class="ty">SeatAvailability</span>&gt; <span class="fn">checkBatch</span>(<span class="ty">List</span>&lt;<span class="ty">UUID</span>&gt; seatIds) {
+    <span class="kw">try</span> (<span class="kw">var</span> scope = <span class="kw">new</span> <span class="ty">StructuredTaskScope</span>.ShutdownOnFailure()) {
+        <span class="kw">var</span> futures = seatIds.stream()
+            .map(id -> scope.fork(() -> checkSingleSeat(id)))
+            .toList();
+        scope.join().throwIfFailed();
+        <span class="kw">return</span> futures.stream().map(<span class="ty">Subtask</span>::get).toList();
+    }
+}</pre>
+        </div>
+        <p>Trade-off vs CompletableFuture: structured concurrency garantiza que ninguna task queda huérfana si el caller se cancela. Más seguro por contrato.</p>
+      </div>
+    </div>
+
+    <div class="layer-box l4">
+      <div class="layer-header">
+        <div class="layer-num">D</div>
+        <div>
+          <div class="layer-title">Kafka Streams — concurrencia distribuida</div>
+          <div class="layer-tech">Agregaciones en tiempo real</div>
+        </div>
+      </div>
+      <div class="layer-content">
+        <p>Kafka Streams paraleliza naturalmente por <strong>partición</strong>. Aplicaciones de Streams (ej: contador de tickets vendidos por segundo, revenue dashboard) consumen N particiones en N threads. Escalado horizontal automático: si agregamos instancias de la app, Kafka redistribuye particiones via consumer rebalance.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="section">
+    <div class="section-title amber"><i class="ti ti-lock-square" aria-hidden="true"></i> Coordinación de concurrencia en operaciones críticas</div>
+    <p class="prose">Más allá del modelo de threading, la coordinación entre instancias de un servicio es clave:</p>
+    <ul style="padding-left:24px;margin-top:8px;color:var(--text2)">
+      <li style="margin-bottom:6px;font-size:13px"><strong style="color:var(--text)">Redisson Redlock</strong> coordina acceso concurrente a asientos entre instancias del Inventory Service</li>
+      <li style="margin-bottom:6px;font-size:13px"><strong style="color:var(--text)">Optimistic locking</strong> en Event Store via <code>UNIQUE(aggregate_id, version)</code> — concurrencia segura sin locks pesimistas a nivel app</li>
+      <li style="margin-bottom:6px;font-size:13px"><strong style="color:var(--text)">Kafka exactly-once</strong> con transactional producers — coordinación entre commit DB y publish Kafka es atómica</li>
+      <li style="margin-bottom:6px;font-size:13px"><strong style="color:var(--text)">Atomic operations en Redis</strong> (Lua scripts, INCR, ZADD) — operaciones lock-free single-threaded por design de Redis</li>
+    </ul>
+  </div>
+
+  <div class="takeaway">
+    <i class="ti ti-bulb" aria-hidden="true"></i>
+    <div class="takeaway-text"><strong>Resumen.</strong> Modelo de concurrencia híbrido por caso de uso. Virtual Threads (Java 21) para los servicios I/O-bound (4 de 7), permitiendo código simple sin sacrificar throughput. WebFlux reactive solo donde el streaming con backpressure lo justifica (Virtual Queue). Structured Concurrency para fan-out paralelo con cleanup automático. Kafka Streams para procesamiento distribuido. Coordinación entre instancias via Redisson Redlock, optimistic locking en Event Store, y operaciones atómicas Redis.</div>
+  </div>
+</div>
+
+<!-- ═══════════════ PREGUNTA 4: LLEGADA MASIVA ═══════════════ -->
+<div class="view" id="view-4">
+  <div class="qheader q4">
+    <div class="qlabel">Pregunta 4</div>
+    <div class="qtitle">¿Cómo planeas manejar la llegada masiva de usuarios en un evento extremadamente popular?</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title purple"><i class="ti ti-flame" aria-hidden="true"></i> El problema: 5M usuarios concurrentes en T=0</div>
+    <p class="prose">Cuando se abre la venta de un evento masivo (ej: Taylor Swift), <strong>millones de usuarios golpean el sistema simultáneamente</strong>. Sin diseño específico, los efectos son catastróficos: thread pools saturados, DB connections agotadas, downstream services en cascada. La solución no es "escalar más" — es <strong>desacoplar el spike del sistema de reservaciones mediante una fila virtual</strong>.</p>
+  </div>
+
+  <div class="section">
+    <div class="section-title purple"><i class="ti ti-queue" aria-hidden="true"></i> Fila virtual — el patrón central</div>
+    <p class="prose">El concepto: al abrir la venta, los usuarios <strong>no llegan directamente al checkout</strong>. Llegan a una fila virtual donde reciben un token de posición. El Inventory Service procesa la fila a un ritmo controlado (ej: 1000 usuarios/segundo). Los usuarios reciben notificación cuando es su turno. Esto convierte un spike de 5M concurrentes en un flujo sostenido manejable.</p>
+  </div>
+
+  <div class="layer-grid">
+
+    <div class="layer-box l1">
+      <div class="layer-header">
+        <div class="layer-num">1</div>
+        <div>
+          <div class="layer-title">Pre-event — preparación T-30min</div>
+        </div>
+      </div>
+      <div class="layer-content">
+        <p>30 minutos antes de <code>sale_opens_at</code>, el sistema entra en modo "warm-up":</p>
+        <ul style="padding-left:18px;color:var(--text2);margin-top:6px">
+          <li style="margin-bottom:3px;font-size:12px"><strong style="color:var(--text)">HPA pre-scale</strong>: GKE Autopilot escala proactivamente Queue Service a N pods esperados</li>
+          <li style="margin-bottom:3px;font-size:12px"><strong style="color:var(--text)">Redis warming</strong>: bitmap de asientos pre-cargado en cache, evita cold start</li>
+          <li style="margin-bottom:3px;font-size:12px"><strong style="color:var(--text)">CDN pre-warm</strong>: páginas del evento cacheadas en edge globales</li>
+          <li style="margin-bottom:3px;font-size:12px"><strong style="color:var(--text)">Notification fan-out</strong>: 50M emails "la venta abre en 30 min" via GCP Pub/Sub</li>
+          <li style="margin-bottom:3px;font-size:12px"><strong style="color:var(--text)">Cloud Armor</strong>: reglas DDoS endurecidas, rate limits temporales más estrictos por IP</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="layer-box l2">
+      <div class="layer-header">
+        <div class="layer-num">2</div>
+        <div>
+          <div class="layer-title">T=0 — apertura de venta</div>
+        </div>
+      </div>
+      <div class="layer-content">
+        <p>5M usuarios envían <code>POST /v1/queue/join</code> en cuestión de segundos. El sistema absorbe el spike:</p>
+        <ul style="padding-left:18px;color:var(--text2);margin-top:6px">
+          <li style="margin-bottom:3px;font-size:12px"><strong style="color:var(--text)">Cloud Load Balancer + Cloud Armor</strong>: absorbe el spike a nivel edge, rate limiting por IP</li>
+          <li style="margin-bottom:3px;font-size:12px"><strong style="color:var(--text)">Spring Cloud Gateway</strong>: rate limiting adicional por userId (5 req/min)</li>
+          <li style="margin-bottom:3px;font-size:12px"><strong style="color:var(--text)">Queue Service en Virtual Threads</strong>: cada request hace ZADD Redis y retorna en &lt;100ms</li>
+          <li style="margin-bottom:3px;font-size:12px"><strong style="color:var(--text)">Redis Sorted Set</strong>: <code>ZADD queue:{eventId} NX {timestamp_us} {userId}</code> — O(log N) — ~23 comparaciones para 5M usuarios</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="layer-box l3">
+      <div class="layer-header">
+        <div class="layer-num">3</div>
+        <div>
+          <div class="layer-title">T+seconds — desacople via WebSocket</div>
+        </div>
+      </div>
+      <div class="layer-content">
+        <p>Una vez en la fila, el usuario <strong>no está haciendo polling al sistema de reservaciones</strong>. Está conectado a un WebSocket que pushea actualizaciones de posición. Esto desacopla completamente la espera del sistema crítico:</p>
+        <ul style="padding-left:18px;color:var(--text2);margin-top:6px">
+          <li style="margin-bottom:3px;font-size:12px"><strong style="color:var(--text)">5M WebSocket conexiones</strong>: Virtual Queue Service en Spring WebFlux + Virtual Threads</li>
+          <li style="margin-bottom:3px;font-size:12px"><strong style="color:var(--text)">Updates cada 30s o cuando posición cambia significativamente</strong> (delta &gt; 5%)</li>
+          <li style="margin-bottom:3px;font-size:12px"><strong style="color:var(--text)">Worker pool procesa N usuarios/segundo</strong> hacia Reservation Service (configurable por evento: ej 500-2000 ups)</li>
+          <li style="margin-bottom:3px;font-size:12px"><strong style="color:var(--text)">El usuario puede cerrar la app</strong>: cuando es su turno, recibe push notification — no necesita estar mirando la pantalla</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="layer-box l4">
+      <div class="layer-header">
+        <div class="layer-num">4</div>
+        <div>
+          <div class="layer-title">Turno del usuario — AccessToken JWT</div>
+        </div>
+      </div>
+      <div class="layer-content">
+        <p>Cuando el worker promueve al usuario al frente de la fila, le emite un <strong>AccessToken JWT firmado RS256 con TTL de 15 minutos</strong>. Este token es requerido en el header <code>X-Queue-Access-Token</code> al hacer <code>POST /v1/reservations</code>. Sin token válido → 401. Esto garantiza que:</p>
+        <ul style="padding-left:18px;color:var(--text2);margin-top:6px">
+          <li style="margin-bottom:3px;font-size:12px"><strong style="color:var(--text)">Solo los usuarios autorizados llegan al checkout</strong> — el resto está esperando</li>
+          <li style="margin-bottom:3px;font-size:12px"><strong style="color:var(--text)">El checkout opera a ritmo controlado</strong> — nunca más de N concurrentes</li>
+          <li style="margin-bottom:3px;font-size:12px"><strong style="color:var(--text)">Token no renovable</strong> — si el usuario no completa en 15min, vuelve a la fila</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="section">
+    <div class="section-title purple"><i class="ti ti-trending-up" aria-hidden="true"></i> Auto-scaling reactivo durante el evento</div>
+    <p class="prose">El HPA de Kubernetes está configurado con métricas custom (no solo CPU):</p>
+    <table class="answ-table">
+      <thead><tr><th>Servicio</th><th>Métrica</th><th>Target</th><th>Min</th><th>Max pods</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Queue Service</strong></td><td>WebSocket connections / pod</td><td>50,000</td><td>10</td><td>200</td></tr>
+        <tr><td><strong>API Gateway</strong></td><td>requests/sec / pod</td><td>1,000</td><td>5</td><td>50</td></tr>
+        <tr><td><strong>Reservation Service</strong></td><td>messages-lag (Kafka)</td><td>1,000</td><td>3</td><td>30</td></tr>
+        <tr><td><strong>Notification Service</strong></td><td>messages-lag (Kafka)</td><td>5,000</td><td>2</td><td>50 (Spot)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="section-title purple"><i class="ti ti-trash-x" aria-hidden="true"></i> Backpressure y shedding</div>
+    <p class="prose">Si el ritmo de ingreso supera la capacidad incluso después de auto-scale, aplicamos <strong>load shedding</strong> proactivo: el Gateway retorna 503 con header <code>Retry-After</code> a un porcentaje de requests, priorizando usuarios ya en cola. Esto preserva la experiencia de quienes ya están dentro vs degradar todo el sistema.</p>
+  </div>
+
+  <div class="section">
+    <div class="section-title purple"><i class="ti ti-message-circle-question" aria-hidden="true"></i> Prevención de bots</div>
+    <p class="prose">Los eventos masivos atraen scalpers automatizados:</p>
+    <ul style="padding-left:24px;margin-top:6px;color:var(--text2)">
+      <li style="margin-bottom:4px;font-size:12px"><strong style="color:var(--text)">reCAPTCHA Enterprise</strong> en endpoint <code>/queue/join</code> — score &lt; 0.5 → rechazo</li>
+      <li style="margin-bottom:4px;font-size:12px"><strong style="color:var(--text)">Device fingerprinting</strong>: detección de browsers headless / patrones automatizados</li>
+      <li style="margin-bottom:4px;font-size:12px"><strong style="color:var(--text)">Rate limiting agresivo</strong>: 5 join/min por userId, 1 conexión WS por (user, evento)</li>
+      <li style="margin-bottom:4px;font-size:12px"><strong style="color:var(--text)">Fraud scoring AI</strong>: velocity, IP reputation, device, behavior — score alto → MFA forzado</li>
+      <li style="margin-bottom:4px;font-size:12px"><strong style="color:var(--text)">Max tickets per user</strong>: hard limit a nivel evento (default 4)</li>
+    </ul>
+  </div>
+
+  <div class="takeaway">
+    <i class="ti ti-bulb" aria-hidden="true"></i>
+    <div class="takeaway-text"><strong>Resumen.</strong> La estrategia central es <strong>fila virtual</strong>: convertir un spike de 5M concurrentes en un flujo controlado. Pre-event: HPA pre-scale, Redis warming, CDN warm. T=0: absorber spike en Gateway + Queue Service con Redis Sorted Set. T+seconds: desacoplar via WebSocket (usuario espera sin pollear). Auto-scaling con métricas custom (Kafka lag, WS connections). Load shedding si supera capacidad. Anti-bot con reCAPTCHA + fraud AI.</div>
+  </div>
+</div>
+
+<!-- ═══════════════ PREGUNTA 5: CAP THEOREM ═══════════════ -->
+<div class="view" id="view-5">
+  <div class="qheader q5">
+    <div class="qlabel">Pregunta 5</div>
+    <div class="qtitle">Describe tu análisis desde la perspectiva del CAP Theorem</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title blue"><i class="ti ti-triangle" aria-hidden="true"></i> CAP Theorem aplicado: no es decisión binaria, es por bounded context</div>
+    <p class="prose">El CAP Theorem de Eric Brewer establece que en presencia de una <strong>partición de red (P)</strong>, un sistema distribuido debe sacrificar <strong>consistencia (C)</strong> o <strong>disponibilidad (A)</strong>. P no es opcional — siempre puede haber partición. La elección real es entre <strong>CP</strong> (consistente pero indisponible durante partición) o <strong>AP</strong> (disponible pero potencialmente inconsistente).</p>
+    <p class="prose"><strong>TicketStorm no es un sistema único.</strong> Cada bounded context elige su posición en CAP según su criticidad de negocio. Esto es la decisión arquitectónica más importante del diseño.</p>
+  </div>
+
+  <div class="cap-grid">
+    <div class="cap-card cp">
+      <div class="cap-letter">CP</div>
+      <div class="cap-title">Servicios CP — Consistencia es no-negociable</div>
+      <div class="cap-services">
+        <strong>Inventory Service:</strong> overbooking es inaceptable. Mejor que un usuario reciba "intente nuevamente" a vender el mismo asiento dos veces.<br><br>
+        <strong>Reservation Service:</strong> el estado de reserva debe ser consistente. Una reserva creada exitosamente debe ser visible en lecturas subsiguientes.<br><br>
+        <strong>Payment Service:</strong> exactly-once cobro es crítico. Idempotency keys garantizan consistencia incluso ante reintentos.
+      </div>
+    </div>
+    <div class="cap-card ap">
+      <div class="cap-letter">AP</div>
+      <div class="cap-title">Servicios AP — Disponibilidad gana sobre consistencia perfecta</div>
+      <div class="cap-services">
+        <strong>Event Catalog:</strong> mostrar info de eventos levemente desactualizada (5-30s lag) es aceptable. Mejor a "no podemos mostrar el catálogo".<br><br>
+        <strong>Virtual Queue:</strong> mostrar posición aproximada (off by 100) es aceptable. Critical: que el usuario sepa que está en cola.<br><br>
+        <strong>Notification:</strong> at-least-once delivery aceptable (mejor recibir 2 emails que ninguno).<br><br>
+        <strong>AI Discovery:</strong> embeddings ligeramente stale es aceptable. La búsqueda semántica no es time-sensitive.
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title blue"><i class="ti ti-database" aria-hidden="true"></i> Trade-offs por componente y storage</div>
+    <table class="answ-table">
+      <thead><tr><th>Componente</th><th>CAP</th><th>Storage</th><th>Garantía</th><th>Trade-off</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Inventory</strong></td><td style="color:var(--coral)">CP</td><td>PostgreSQL + Redis + Event Store</td><td>Strong consistency (linearizable en seat ops)</td><td>Durante partición Redis: fallback a DB. Mayor latencia pero correcto.</td></tr>
+        <tr><td><strong>Reservation</strong></td><td style="color:var(--coral)">CP</td><td>PostgreSQL Event Store + Outbox</td><td>Read-your-writes consistency</td><td>Durante partición DB: error 503. Reserva no puede crearse.</td></tr>
+        <tr><td><strong>Payment</strong></td><td style="color:var(--coral)">CP</td><td>PostgreSQL + Idempotency table</td><td>Exactly-once con idempotency key</td><td>Durante partición gateway: 202 PROCESSING + retry async.</td></tr>
+        <tr><td><strong>Event Catalog</strong></td><td style="color:var(--teal)">AP</td><td>PostgreSQL → Elasticsearch + Redis</td><td>Eventually consistent (lag ~5s)</td><td>Datos desactualizados durante sync. Aceptable para browse.</td></tr>
+        <tr><td><strong>Virtual Queue</strong></td><td style="color:var(--teal)">AP</td><td>Redis Sorted Set</td><td>Eventually consistent (sub-second)</td><td>Posición exacta puede variar ±N durante sync de replicas.</td></tr>
+        <tr><td><strong>Notification</strong></td><td style="color:var(--teal)">AP</td><td>Kafka → Outbox</td><td>At-least-once delivery</td><td>Posibles duplicados. Consumer hace dedup por message_id.</td></tr>
+        <tr><td><strong>AI Discovery</strong></td><td style="color:var(--teal)">AP</td><td>pgvector</td><td>Eventually consistent (lag ~30s)</td><td>Embeddings de eventos nuevos tardan en aparecer en búsqueda.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="section-title blue"><i class="ti ti-arrows-shuffle" aria-hidden="true"></i> Cómo se materializan las decisiones CP/AP</div>
+
+    <div class="layer-grid">
+      <div class="layer-box l1">
+        <div class="layer-header">
+          <div class="layer-num">CP</div>
+          <div><div class="layer-title">Implementación de CP en Inventory + Reservation + Payment</div></div>
+        </div>
+        <div class="layer-content">
+          <p>Las 4 capas anti-overbooking son inherentemente CP. Si Redis falla, el sistema rechaza requests (HTTP 503) en lugar de servir datos inconsistentes. PostgreSQL es el source of truth — si la DB primaria está particionada del standby durante un failover, las escrituras se rechazan hasta que la red se restaura.</p>
+          <p><strong>Concretamente</strong>: ante partición, el Inventory Service prefiere <strong>retornar 503 Service Unavailable</strong> antes que arriesgar overbooking. Esto se manifiesta como menor disponibilidad medida — pero <strong>la disponibilidad de un sistema con overbooking es 0 desde el punto de vista del negocio</strong>.</p>
+        </div>
+      </div>
+
+      <div class="layer-box l3">
+        <div class="layer-header">
+          <div class="layer-num">AP</div>
+          <div><div class="layer-title">Implementación de AP en Catalog + Queue + Notification</div></div>
+        </div>
+        <div class="layer-content">
+          <p><strong>Event Catalog:</strong> CQRS read/write split. PostgreSQL es source of truth (CP). Elasticsearch y Redis son réplicas eventually consistent (AP). Si la replicación tiene lag de 5s, los usuarios pueden ver disponibilidad ligeramente desactualizada — aceptable, porque el Inventory Service (CP) es el que toma la decisión final al reservar.</p>
+          <p><strong>Virtual Queue:</strong> Redis Cluster usa replicación asíncrona. Si un master falla durante un failover, puede haber pérdida de algunos ZADDs recientes (window de pocos segundos). Aceptable porque la posición exacta no es crítica — el usuario será re-encolado si pierde su slot, con UX explícita.</p>
+          <p><strong>Notification:</strong> Kafka + Outbox garantizan at-least-once. Un usuario puede recibir 2 emails de confirmación si hay un retry del consumer — aceptable, vs el costo de garantizar exactly-once delivery (que es virtualmente imposible en sistemas distribuidos sin idempotencia del receiver).</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title blue"><i class="ti ti-bolt" aria-hidden="true"></i> PACELC — el complemento de CAP</div>
+    <p class="prose">PACELC (Daniel Abadi) extiende CAP: <strong>incluso sin partición</strong>, el sistema debe elegir entre <strong>latencia (L)</strong> y <strong>consistencia (C)</strong>. Esta dimensión es más práctica que CAP porque las particiones son raras pero los trade-offs de latencia ocurren constantemente.</p>
+    <table class="answ-table">
+      <thead><tr><th>Componente</th><th>Sin partición (ELC)</th><th>Justificación</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Inventory</strong></td><td>EC (consistencia sobre latencia)</td><td>~10ms extra por Redlock + SELECT FOR UPDATE es aceptable</td></tr>
+        <tr><td><strong>Reservation</strong></td><td>EC</td><td>Event Store con UNIQUE constraint añade latencia mínima</td></tr>
+        <tr><td><strong>Event Catalog</strong></td><td>EL (latencia sobre consistencia)</td><td>Servir desde Redis cache (~5ms) vs DB (~30ms). Lag aceptable.</td></tr>
+        <tr><td><strong>Virtual Queue</strong></td><td>EL</td><td>ZADD a Redis local replica primero, sync async</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="section-title blue"><i class="ti ti-message-circle" aml-hidden="true"></i> Decisión clave: dónde poner la "L de boundary" entre CP y AP</div>
+    <p class="prose">El diseño coloca la boundary CP/AP <strong>en el momento de la reserva</strong>. Antes (browse, search, queue): AP, baja latencia, alta disponibilidad. Después (reserve, pay): CP, consistencia estricta. Esta boundary es deliberada: <strong>los usuarios pueden navegar y esperar durante una degradación de catálogo, pero no deben poder iniciar transacciones inconsistentes</strong>.</p>
+    <p class="prose">Concretamente, esto significa que durante un incidente parcial:</p>
+    <ul style="padding-left:24px;margin-top:6px;color:var(--text2)">
+      <li style="margin-bottom:4px;font-size:12px"><strong style="color:var(--text)">Si Elasticsearch falla:</strong> el browse degrada (fallback a queries Postgres más lentas), pero el sistema sigue funcional</li>
+      <li style="margin-bottom:4px;font-size:12px"><strong style="color:var(--text)">Si Redis falla:</strong> Inventory degrada en latencia (~50ms vs 2ms) pero sigue siendo correcto via Postgres</li>
+      <li style="margin-bottom:4px;font-size:12px"><strong style="color:var(--text)">Si PostgreSQL primary falla:</strong> failover automático a standby. Read replicas siguen sirviendo durante failover. Window de 30-60s de unavailability del write side.</li>
+      <li style="margin-bottom:4px;font-size:12px"><strong style="color:var(--text)">Si Kafka falla:</strong> Reservation/Payment siguen funcionando localmente, eventos se acumulan en Outbox. Cuando Kafka recupera, se publican backlog.</li>
+    </ul>
+  </div>
+
+  <div class="takeaway">
+    <i class="ti ti-bulb" aria-hidden="true"></i>
+    <div class="takeaway-text"><strong>Resumen.</strong> TicketStorm es un sistema híbrido CAP: <strong>CP en Inventory, Reservation y Payment</strong> (consistencia es un requisito de negocio innegociable — no overbooking, no cobros duplicados). <strong>AP en Catalog, Queue, Notification y AI</strong> (disponibilidad y baja latencia priorizadas, eventual consistency aceptable). PACELC: misma división entre latencia y consistencia sin partición. La boundary CP/AP está colocada en el momento de la reserva — antes el sistema es AP, después CP. Esta decisión es la más fundamental del diseño.</div>
+  </div>
+</div>
+
+<footer>TicketStorm · Cuestionario de Evaluación v1.0 · Matías Martínez · Bootcamp Arquitecturas Backend Gran Escala · Código Facilito 2026</footer>
+
+<script>
+function sw(n){
+  for(let i=1;i<=5;i++){
+    document.getElementById('view-'+i).classList.toggle('active', i===n);
+  }
+  document.querySelectorAll('.qnav-item').forEach((el,i)=>{
+    el.classList.toggle('active', i===(n-1));
+  });
+  window.scrollTo(0,0);
+}
+</script>
+</body>
+</html>

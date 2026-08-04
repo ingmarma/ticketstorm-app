@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TicketStorm — Data Model</title>
+<link rel="stylesheet" href="https://unpkg.com/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<style>
+  :root {
+    --bg: #0d1117; --bg2: #161b22; --bg3: #21262d; --bg4: #0a0e13;
+    --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.13);
+    --text: #e6edf3; --text2: #8b949e; --text3: #6e7681;
+    --blue: #58a6ff; --blue-bg: rgba(88,166,255,0.08); --blue-b: rgba(88,166,255,0.22);
+    --teal: #3fb950; --teal-bg: rgba(63,185,80,0.08); --teal-b: rgba(63,185,80,0.22);
+    --purple: #d2a8ff; --purple-bg: rgba(210,168,255,0.08); --purple-b: rgba(210,168,255,0.22);
+    --amber: #e3b341; --amber-bg: rgba(227,179,65,0.08); --amber-b: rgba(227,179,65,0.22);
+    --coral: #f78166; --coral-bg: rgba(247,129,102,0.08); --coral-b: rgba(247,129,102,0.22);
+    --pink: #f778ba; --pink-bg: rgba(247,120,186,0.08); --pink-b: rgba(247,120,186,0.22);
+    --red: #ff7b72; --red-bg: rgba(255,123,114,0.08);
+    --green: #3fb950;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI',sans-serif;font-size:13px;line-height:1.5}
+
+  /* HEADER */
+  .header{padding:24px 32px 20px;border-bottom:1px solid var(--border)}
+  .tag{display:inline-flex;align-items:center;gap:6px;background:var(--amber-bg);border:1px solid var(--amber-b);color:var(--amber);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin-bottom:10px}
+  h1{font-size:20px;font-weight:700;color:var(--text);margin-bottom:5px}
+  .hdesc{color:var(--text2);font-size:12px;max-width:760px;line-height:1.6}
+
+  /* TABS */
+  .tabs{display:flex;flex-wrap:wrap;gap:0;padding:0 32px;border-bottom:1px solid var(--border);background:var(--bg2);overflow-x:auto}
+  .tab{padding:11px 18px;font-size:12px;font-weight:500;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;user-select:none;display:flex;align-items:center;gap:7px;white-space:nowrap}
+  .tab:hover{color:var(--text2)}
+  .tab.active{color:var(--text);border-bottom-color:var(--amber)}
+
+  /* VIEWS */
+  .view{display:none;padding:24px 32px 40px}
+  .view.active{display:block}
+
+  /* SECTION HEADER */
+  .sec-hd{display:flex;align-items:center;gap:10px;margin-bottom:16px;margin-top:8px}
+  .sec-hd h2{font-size:15px;font-weight:700;color:var(--text)}
+  .sec-hd p{font-size:11px;color:var(--text3);margin-top:2px}
+  .sec-badge{font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:.04em;text-transform:uppercase}
+
+  /* DB CARDS */
+  .db-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(400px,1fr));gap:20px;margin-bottom:28px}
+  .db-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+  .db-card-header{padding:14px 16px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)}
+  .db-card-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+  .db-card-title{font-size:13px;font-weight:700;color:var(--text)}
+  .db-card-sub{font-size:11px;color:var(--text3);margin-top:2px}
+  .db-card-body{padding:0}
+
+  /* SQL TABLE */
+  .sql-table{width:100%;border-collapse:collapse}
+  .sql-table thead th{background:var(--bg3);padding:8px 14px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)}
+  .sql-table tbody td{padding:7px 14px;border-bottom:1px solid var(--border);font-size:11px;vertical-align:top}
+  .sql-table tbody tr:last-child td{border-bottom:none}
+  .sql-table tbody tr:hover td{background:var(--bg3)}
+  .col-name{font-family:'SF Mono','Fira Code',ui-monospace,monospace;font-size:11px;font-weight:600;color:var(--text)}
+  .col-type{font-family:'SF Mono',ui-monospace,monospace;font-size:10px;color:var(--blue)}
+  .col-constraint{font-size:10px}
+  .col-desc{font-size:11px;color:var(--text2)}
+
+  /* BADGES */
+  .b-pk{background:rgba(227,179,65,.15);color:var(--amber);font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;text-transform:uppercase;letter-spacing:.04em}
+  .b-fk{background:rgba(88,166,255,.12);color:var(--blue);font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;text-transform:uppercase;letter-spacing:.04em}
+  .b-uq{background:rgba(210,168,255,.12);color:var(--purple);font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;text-transform:uppercase;letter-spacing:.04em}
+  .b-idx{background:rgba(63,185,80,.1);color:var(--teal);font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;text-transform:uppercase;letter-spacing:.04em}
+  .b-nn{background:rgba(247,129,102,.1);color:var(--coral);font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;text-transform:uppercase;letter-spacing:.04em}
+
+  /* SQL CODE BLOCK */
+  .sql-block{background:var(--bg4);border:1px solid var(--border);border-radius:10px;margin-bottom:20px;overflow:hidden}
+  .sql-block-header{padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .sql-block-title{font-size:11px;font-weight:700;color:var(--text2);font-family:'SF Mono',monospace}
+  .sql-block-badge{font-size:9px;font-weight:700;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.04em}
+  pre{padding:16px;overflow-x:auto;font-family:'SF Mono','Fira Code',ui-monospace,monospace;font-size:11px;line-height:1.7;color:var(--text2)}
+  .kw{color:#ff7b72}    /* SQL keywords */
+  .ty{color:#79c0ff}    /* types */
+  .st{color:#a5d6ff}    /* strings/values */
+  .cm{color:#6e7681;font-style:italic} /* comments */
+  .fn{color:#d2a8ff}    /* functions */
+  .cn{color:#e3b341}    /* constraint names */
+
+  /* REDIS SECTION */
+  .redis-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:16px;margin-bottom:20px}
+  .redis-card{background:var(--bg2);border:1px solid var(--coral-b);border-radius:12px;overflow:hidden}
+  .redis-card-hd{padding:12px 16px;background:rgba(247,129,102,.06);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+  .redis-card-icon{color:var(--coral);font-size:18px}
+  .redis-card-title{font-size:12px;font-weight:700;color:var(--coral)}
+  .redis-card-sub{font-size:10px;color:var(--text3);margin-top:1px}
+  .redis-card-body{padding:14px 16px}
+  .redis-key-ex{font-family:'SF Mono',ui-monospace,monospace;font-size:11px;background:var(--bg3);color:var(--amber);padding:6px 10px;border-radius:6px;margin-bottom:10px;border:1px solid var(--border);display:block;word-break:break-all}
+  .redis-ops{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
+  .redis-op{font-size:9px;font-weight:700;font-family:'SF Mono',monospace;background:rgba(247,129,102,.1);color:var(--coral);padding:2px 8px;border-radius:4px;border:1px solid rgba(247,129,102,.2)}
+  .redis-detail{font-size:11px;color:var(--text2);line-height:1.6}
+  .redis-detail strong{color:var(--text)}
+
+  /* INFO BOXES */
+  .info-box{background:var(--bg2);border:1px solid var(--border);border-left:3px solid;border-radius:0 10px 10px 0;padding:12px 16px;margin-bottom:16px}
+  .info-box p{font-size:12px;color:var(--text2);line-height:1.6}
+  .info-box strong{color:var(--text)}
+
+  /* ERD NOTES */
+  .erd-relations{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:20px}
+  .erd-rel-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px}
+  .erd-rel-item{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:11px}
+  .erd-rel-item:last-child{border-bottom:none}
+  .erd-from{font-family:monospace;color:var(--amber);font-weight:600}
+  .erd-to{font-family:monospace;color:var(--blue);font-weight:600}
+  .erd-card{font-size:10px;color:var(--teal);font-weight:700;min-width:50px;text-align:center}
+  .erd-note{font-size:10px;color:var(--text3);margin-left:auto}
+
+  /* VECTOR TABLE */
+  .vector-desc{font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:16px}
+  .vector-desc strong{color:var(--pink)}
+
+  footer{text-align:center;color:var(--text3);font-size:11px;padding:20px 32px;border-top:1px solid var(--border)}
+
+  @media(max-width:720px){.db-grid{grid-template-columns:1fr}.redis-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="tag"><i class="ti ti-database" aria-hidden="true"></i> Semana 2 — Entregable 1 de 2</div>
+  <h1>TicketStorm — Data Model</h1>
+  <p class="hdesc">Modelo de datos completo por bounded context. Incluye schemas PostgreSQL con tipos, constraints e índices; estructuras Redis con patrones de acceso; Event Store schema para Event Sourcing; y tabla pgvector para AI Discovery. Cada decisión justificada con trade-offs.</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="sw('catalog')"><i class="ti ti-list-search" aria-hidden="true"></i> Event Catalog</div>
+  <div class="tab" onclick="sw('inventory')"><i class="ti ti-armchair" aria-hidden="true"></i> Inventory</div>
+  <div class="tab" onclick="sw('reservation')"><i class="ti ti-clock-check" aria-hidden="true"></i> Reservation</div>
+  <div class="tab" onclick="sw('payment')"><i class="ti ti-credit-card" aria-hidden="true"></i> Payment</div>
+  <div class="tab" onclick="sw('redis')"><i class="ti ti-bolt" aria-hidden="true"></i> Redis</div>
+  <div class="tab" onclick="sw('vector')"><i class="ti ti-vector" aria-hidden="true"></i> pgvector + AI</div>
+  <div class="tab" onclick="sw('erd')"><i class="ti ti-relation-many-to-many" aria-hidden="true"></i> Relaciones</div>
+</div>
+
+<!-- ══════════════ EVENT CATALOG ══════════════ -->
+<div class="view active" id="view-catalog">
+  <div class="info-box" style="border-left-color:var(--blue)">
+    <p><strong>Patrón: CQRS Read/Write split.</strong> Write-side en PostgreSQL (fuente de verdad). Read-side replicada en Elasticsearch (full-text + faceted search) y Redis (caché de páginas de eventos). El Catalog Service es <strong>AP en CAP</strong> — los resultados de búsqueda pueden ser levemente desactualizados. Acceptable para browse; no para disponibilidad de asientos.</p>
+  </div>
+
+  <div class="sql-block">
+    <div class="sql-block-header">
+      <span class="sql-block-title">catalog_db — PostgreSQL (Cloud SQL)</span>
+      <span class="sql-block-badge" style="background:var(--blue-bg);color:var(--blue)">Write-side</span>
+    </div>
+    <pre><span class="cm">-- ─────────────────────────────────────────────
+-- VENUES
+-- ─────────────────────────────────────────────</span>
+<span class="kw">CREATE TABLE</span> venues (
+    id              <span class="ty">UUID</span>            <span class="kw">PRIMARY KEY DEFAULT</span> <span class="fn">gen_random_uuid</span>(),
+    name            <span class="ty">VARCHAR(200)</span>    <span class="kw">NOT NULL</span>,
+    slug            <span class="ty">VARCHAR(200)</span>    <span class="kw">NOT NULL UNIQUE</span>,
+    country_code    <span class="ty">CHAR(2)</span>         <span class="kw">NOT NULL</span>,
+    city            <span class="ty">VARCHAR(100)</span>    <span class="kw">NOT NULL</span>,
+    address         <span class="ty">TEXT</span>            <span class="kw">NOT NULL</span>,
+    latitude        <span class="ty">DECIMAL(9,6)</span>,
+    longitude       <span class="ty">DECIMAL(9,6)</span>,
+    total_capacity  <span class="ty">INTEGER</span>         <span class="kw">NOT NULL CHECK</span> (total_capacity > 0),
+    sections        <span class="ty">JSONB</span>           <span class="kw">NOT NULL DEFAULT</span> <span class="st">'[]'</span>,  <span class="cm">-- [{id,name,rows,cols,capacity}]</span>
+    metadata        <span class="ty">JSONB</span>           <span class="kw">NOT NULL DEFAULT</span> <span class="st">'{}'</span>,
+    created_at      <span class="ty">TIMESTAMPTZ</span>     <span class="kw">NOT NULL DEFAULT</span> <span class="fn">NOW</span>(),
+    updated_at      <span class="ty">TIMESTAMPTZ</span>     <span class="kw">NOT NULL DEFAULT</span> <span class="fn">NOW</span>()
+);
+<span class="kw">CREATE INDEX</span> idx_venues_city     <span class="kw">ON</span> venues (city);
+<span class="kw">CREATE INDEX</span> idx_venues_country  <span class="kw">ON</span> venues (country_code);
+<span class="kw">CREATE INDEX</span> idx_venues_geo      <span class="kw">ON</span> venues (latitude, longitude); <span class="cm">-- queries geoespaciales</span>
+
+<span class="cm">-- ─────────────────────────────────────────────
+-- ARTISTS
+-- ─────────────────────────────────────────────</span>
+<span class="kw">CREATE TABLE</span> artists (
+    id          <span class="ty">UUID</span>            <span class="kw">PRIMARY KEY DEFAULT</span> <span class="fn">gen_random_uuid</span>(),
+    name        <span class="ty">VARCHAR(200)</span>    <span class="kw">NOT NULL</span>,
+    slug        <span class="ty">VARCHAR(200)</span>    <span class="kw">NOT NULL UNIQUE</span>,
+    genre       <span class="ty">VARCHAR(100)</span>,
+    bio         <span class="ty">TEXT</span>,
+    image_url   <span class="ty">VARCHAR(500)</span>,
+    metadata    <span class="ty">JSONB</span>           <span class="kw">NOT NULL DEFAULT</span> <span class="st">'{}'</span>,
+    created_at  <span class="ty">TIMESTAMPTZ</span>     <span class="kw">NOT NULL DEFAULT</span> <span class="fn">NOW</span>()
+);
+
+<span class="cm">-- ─────────────────────────────────────────────
+-- EVENTS  (Aggregate Root)
+-- ─────────────────────────────────────────────</span>
+<span class="kw">CREATE TABLE</span> events (
+    id                  <span class="ty">UUID</span>            <span class="kw">PRIMARY KEY DEFAULT</span> <span class="fn">gen_random_uuid</span>(),
+    venue_id            <span class="ty">UUID</span>            <span class="kw">NOT NULL REFERENCES</span> venues(id),
+    name                <span class="ty">VARCHAR(300)</span>    <span class="kw">NOT NULL</span>,
+    slug                <span class="ty">VARCHAR(300)</span>    <span class="kw">NOT NULL UNIQUE</span>,
+    description         <span class="ty">TEXT</span>,
+    event_date          <span class="ty">TIMESTAMPTZ</span>     <span class="kw">NOT NULL</span>,
+    doors_open_at       <span class="ty">TIMESTAMPTZ</span>,
+    status              <span class="ty">event_status</span>    <span class="kw">NOT NULL DEFAULT</span> <span class="st">'DRAFT'</span>,  <span class="cm">-- DRAFT|PUBLISHED|CANCELLED|SOLD_OUT</span>
+    sale_opens_at       <span class="ty">TIMESTAMPTZ</span>,   <span class="cm">-- trigger SaleWindowOpened domain event</span>
+    sale_closes_at      <span class="ty">TIMESTAMPTZ</span>,
+    total_tickets       <span class="ty">INTEGER</span>         <span class="kw">NOT NULL CHECK</span> (total_tickets > 0),
+    max_tickets_per_user <span class="ty">SMALLINT</span>       <span class="kw">NOT NULL DEFAULT</span> 4,
+    image_url           <span class="ty">VARCHAR(500)</span>,
+    metadata            <span class="ty">JSONB</span>           <span class="kw">NOT NULL DEFAULT</span> <span class="st">'{}'</span>,
+    version             <span class="ty">INTEGER</span>         <span class="kw">NOT NULL DEFAULT</span> 1,     <span class="cm">-- optimistic locking</span>
+    created_at          <span class="ty">TIMESTAMPTZ</span>     <span class="kw">NOT NULL DEFAULT</span> <span class="fn">NOW</span>(),
+    updated_at          <span class="ty">TIMESTAMPTZ</span>     <span class="kw">NOT NULL DEFAULT</span> <span class="fn">NOW</span>()
+);
+<span class="kw">CREATE INDEX</span> idx_events_venue       <span class="kw">ON</span> events (venue_id);
+<span class="kw">CREATE INDEX</span> idx_events_date        <span class="kw">ON</span> events (event_date);
+<span class="kw">CREATE INDEX</span> idx_events_status      <span class="kw">ON</span> events (status) <span class="kw">WHERE</span> status = <span class="st">'PUBLISHED'</span>;
+<span class="kw">CREATE INDEX</span> idx_events_sale_opens  <span class="kw">ON</span> events (sale_opens_at) <span class="kw">WHERE</span> sale_opens_at <span class="kw">IS NOT NULL</span>;
+
+<span class="cm">-- ─────────────────────────────────────────────
+-- EVENT_ARTISTS  (M:N)
+-- ─────────────────────────────────────────────</span>
+<span class="kw">CREATE TABLE</span> event_artists (
+    event_id    <span class="ty">UUID</span>        <span class="kw">NOT NULL REFERENCES</span> events(id)  <span class="kw">ON DELETE CASCADE</span>,
+    artist_id   <span class="ty">UUID</span>        <span class="kw">NOT NULL REFERENCES</span> artists(id) <span class="kw">ON DELETE RESTRICT</span>,
+    is_headliner <span class="ty">BOOLEAN</span>   <span class="kw">NOT NULL DEFAULT</span> <span class="kw">FALSE</span>,
+    order_idx   <span class="ty">SMALLINT</span>   <span class="kw">NOT NULL DEFAULT</span> 0,
+    <span class="kw">PRIMARY KEY</span> (event_id, artist_id)
+);
+
+<span class="cm">-- ─────────────────────────────────────────────
+-- TICKET_CATEGORIES  (Value Object embebido en Event)
+-- ─────────────────────────────────────────────</span>
+<span class="kw">CREATE TABLE</span> ticket_categories (
+    id              <span class="ty">UUID</span>            <span class="kw">PRIMARY KEY DEFAULT</span> <span class="fn">gen_random_uuid</span>(),
+    event_id        <span class="ty">UUID</span>            <span class="kw">NOT NULL REFERENCES</span> events(id) <span class="kw">ON DELETE CASCADE</span>,
+    name            <span class="ty">VARCHAR(100)</span>    <span class="kw">NOT NULL</span>,         <span class="cm">-- "VIP", "Campo", "Platea"</span>
+    section_id      <span class="ty">VARCHAR(50)</span>,                      <span class="cm">-- ref a sections JSONB del venue</span>
+    price_amount    <span class="ty">NUMERIC(10,2)</span>   <span class="kw">NOT NULL CHECK</span> (price_amount >= 0),
+    price_currency  <span class="ty">CHAR(3)</span>         <span class="kw">NOT NULL DEFAULT</span> <span class="st">'USD'</span>,
+    total_quantity  <span class="ty">INTEGER</span>         <span class="kw">NOT NULL CHECK</span> (total_quantity > 0),
+    is_numbered     <span class="ty">BOOLEAN</span>         <span class="kw">NOT NULL DEFAULT</span> <span class="kw">TRUE</span>,
+    sale_opens_at   <span class="ty">TIMESTAMPTZ</span>,   <span class="cm">-- puede diferir del evento general</span>
+    metadata        <span class="ty">JSONB</span>           <span class="kw">NOT NULL DEFAULT</span> <span class="st">'{}'</span>
+);
+<span class="kw">CREATE INDEX</span> idx_ticket_cat_event <span class="kw">ON</span> ticket_categories (event_id);
+
+<span class="cm">-- ENUM</span>
+<span class="kw">CREATE TYPE</span> event_status <span class="kw">AS ENUM</span> (<span class="st">'DRAFT'</span>, <span class="st">'PUBLISHED'</span>, <span class="st">'CANCELLED'</span>, <span class="st">'SOLD_OUT'</span>);</pre>
+  </div>
+</div>
+
+<!-- ══════════════ INVENTORY ══════════════ -->
+<div class="view" id="view-inventory">
+  <div class="info-box" style="border-left-color:var(--amber)">
+    <p><strong>Patrón: Event Sourcing puro.</strong> El estado de cada asiento se deriva exclusivamente del log de eventos en <code style="font-family:monospace;font-size:11px;color:var(--amber)">inventory_events</code>. No hay columna <code style="font-family:monospace;font-size:11px;color:var(--amber)">status</code> mutable — el status actual es una proyección. La tabla <code style="font-family:monospace;font-size:11px;color:var(--amber)">seat_projections</code> es un read model materializado para queries de disponibilidad. <strong>CP en CAP</strong>: consistencia garantizada por 3 capas (Lua + Redlock + SELECT FOR UPDATE).</p>
+  </div>
+
+  <div class="sql-block">
+    <div class="sql-block-header">
+      <span class="sql-block-title">inventory_db — PostgreSQL (Cloud SQL)</span>
+      <span class="sql-block-badge" style="background:var(--amber-bg);color:var(--amber)">Event Store + Projections</span>
+    </div>
+    <pre><span class="cm">-- ─────────────────────────────────────────────
+-- INVENTORY_EVENTS  (Event Store — inmutable)
+-- ─────────────────────────────────────────────</span>
+<span class="kw">CREATE TABLE</span> inventory_events (
+    id              <span class="ty">BIGSERIAL</span>       <span class="kw">PRIMARY KEY</span>,          <span class="cm">-- sequence global para ordering</span>
+    aggregate_id    <span class="ty">UUID</span>            <span class="kw">NOT NULL</span>,              <span class="cm">-- seat_id</span>
+    event_id        <span class="ty">UUID</span>            <span class="kw">NOT NULL</span>,              <span class="cm">-- FK lógico a Catalog BC</span>
+    event_type      <span class="ty">VARCHAR(80)</span>     <span class="kw">NOT NULL</span>,              <span class="cm">-- SeatReserved|SeatReleased|SeatPurchased</span>
+    aggregate_version <span class="ty">INTEGER</span>       <span class="kw">NOT NULL</span>,              <span class="cm">-- optimistic concurrency por seat</span>
+    payload         <span class="ty">JSONB</span>           <span class="kw">NOT NULL</span>,              <span class="cm">-- datos del evento</span>
+    correlation_id  <span class="ty">UUID</span>,                                  <span class="cm">-- traceId para correlación</span>
+    causation_id    <span class="ty">UUID</span>,                                  <span class="cm">-- id del comando que causó el evento</span>
+    occurred_at     <span class="ty">TIMESTAMPTZ</span>     <span class="kw">NOT NULL DEFAULT</span> <span class="fn">NOW</span>(),
+    <span class="kw">CONSTRAINT</span> <span class="cn">uq_aggregate_version</span> <span class="kw">UNIQUE</span> (aggregate_id, aggregate_version)
+    <span class="cm">-- La constraint UNIQUE (aggregate_id, aggregate_version) es la 3ra capa
+    -- anti-overbooking: si dos transacciones intentan escribir version=N
+    -- para el mismo asiento, una fallará con constraint violation.</span>
+);
+<span class="kw">CREATE INDEX</span> idx_inv_events_aggregate  <span class="kw">ON</span> inventory_events (aggregate_id, aggregate_version);
+<span class="kw">CREATE INDEX</span> idx_inv_events_event_id   <span class="kw">ON</span> inventory_events (event_id);
+<span class="kw">CREATE INDEX</span> idx_inv_events_type       <span class="kw">ON</span> inventory_events (event_type, occurred_at);
+<span class="kw">CREATE INDEX</span> idx_inv_events_corr       <span class="kw">ON</span> inventory_events (correlation_id);
+
+<span class="cm">-- ─────────────────────────────────────────────
+-- SEAT_PROJECTIONS  (Read model materializado)
+-- Se actualiza via projection handler al consumir inventory_events
+-- ─────────────────────────────────────────────</span>
+<span class="kw">CREATE TABLE</span> seat_projections (
+    seat_id         <span class="ty">UUID</span>            <span class="kw">PRIMARY KEY</span>,
+    event_id        <span class="ty">UUID</span>            <span class="kw">NOT NULL</span>,
+    category_id     <span class="ty">UUID</span>            <span class="kw">NOT NULL</span>,
+    section_id      <span class="ty">VARCHAR(50)</span>     <span class="kw">NOT NULL</span>,
+    row_label       <span class="ty">VARCHAR(10)</span>,
+    seat_number     <span class="ty">SMALLINT</span>,
+    status          <span class="ty">seat_status</span>     <span class="kw">NOT NULL DEFAULT</span> <span class="st">'AVAILABLE'</span>,
+    reserved_by     <span class="ty">UUID</span>,           <span class="cm">-- user_id si RESERVED</span>
+    reserved_until  <span class="ty">TIMESTAMPTZ</span>,   <span class="cm">-- expiry de la reserva temporal</span>
+    last_event_seq  <span class="ty">BIGINT</span>          <span class="kw">NOT NULL</span>,              <span class="cm">-- último evento aplicado</span>
+    updated_at      <span class="ty">TIMESTAMPTZ</span>     <span class="kw">NOT NULL DEFAULT</span> <span class="fn">NOW</span>()
+);
+<span class="kw">CREATE INDEX</span> idx_seat_proj_event       <span class="kw">ON</span> seat_projections (event_id, status);
+<span class="kw">CREATE INDEX</span> idx_seat_proj_avail       <span class="kw">ON</span> seat_projections (event_id) <span class="kw">WHERE</span> status = <span class="st">'AVAILABLE'</span>;
+<span class="kw">CREATE INDEX</span> idx_seat_proj_reserved_by <span class="kw">ON</span> seat_projections (reserved_by) <span class="kw">WHERE</span> reserved_by <span class="kw">IS NOT NULL</span>;
+
+<span class="cm">-- ─────────────────────────────────────────────
+-- INVENTORY_SNAPSHOTS  (performance: evita replay de todos los eventos)
+-- Snapshot cada 100 eventos por aggregate_id
+-- ─────────────────────────────────────────────</span>
+<span class="kw">CREATE TABLE</span> inventory_snapshots (
+    aggregate_id    <span class="ty">UUID</span>            <span class="kw">NOT NULL</span>,
+    version         <span class="ty">INTEGER</span>         <span class="kw">NOT NULL</span>,
+    state           <span class="ty">JSONB</span>           <span class="kw">NOT NULL</span>,  <span class="cm">-- snapshot del estado del aggregate</span>
+    created_at      <span class="ty">TIMESTAMPTZ</span>     <span class="kw">NOT NULL DEFAULT</span> <span class="fn">NOW</span>(),
+    <span class="kw">PRIMARY KEY</span> (aggregate_id, version)
+);
+
+<span class="cm">-- ENUMs</span>
+<span class="kw">CREATE TYPE</span> seat_status <span class="kw">AS ENUM</span> (<span class="st">'AVAILABLE'</span>, <span class="st">'RESERVED'</span>, <span class="st">'PURCHASED'</span>, <span class="st">'BLOCKED'</span>);
+
+<span class="cm">-- PAYLOAD examples:
+-- SeatReserved:  {"seat_id":"...","user_id":"...","reservation_id":"...","expires_at":"..."}
+-- SeatReleased:  {"seat_id":"...","reason":"EXPIRED|PAYMENT_FAILED|USER_CANCELLED"}
+-- SeatPurchased: {"seat_id":"...","user_id":"...","ticket_id":"...","payment_id":"..."}</span></pre>
+  </div>
+</div>
+
+<!-- ══════════════ RESERVATION ══════════════ -->
+<div class="view" id="view-reservation">
+  <div class="info-box" style="border-left-color:var(--teal)">
+    <p><strong>Patrón: Event Sourcing + Outbox.</strong> El Reservation Service usa su propio Event Store. El patrón Outbox garantiza que los eventos de dominio se publiquen en Kafka si y solo si la transacción DB commit. <strong>Sin Outbox</strong> existe riesgo de que la DB commit pero Kafka falle, dejando la Saga en estado inconsistente.</p>
+  </div>
+
+  <div class="sql-block">
+    <div class="sql-block-header">
+      <span class="sql-block-title">reservation_db — PostgreSQL (Cloud SQL)</span>
+      <span class="sql-block-badge" style="background:var(--teal-bg);color:var(--teal)">Event Store + Outbox + Saga</span>
+    </div>
+    <pre><span class="cm">-- ─────────────────────────────────────────────
+-- RESERVATION_EVENTS  (Event Store)
+-- ─────────────────────────────────────────────</span>
+<span class="kw">CREATE TABLE</span> reservation_events (
+    id                  <span class="ty">BIGSERIAL</span>       <span class="kw">PRIMARY KEY</span>,
+    aggregate_id        <span class="ty">UUID</span>            <span class="kw">NOT NULL</span>,  <span class="cm">-- reservation_id</span>
+    aggregate_version   <span class="ty">INTEGER</span>         <span class="kw">NOT NULL</span>,
+    event_type          <span class="ty">VARCHAR(80)</span>     <span class="kw">NOT NULL</span>,
+    <span class="cm">-- ReservationCreated | ReservationExpired | TicketPurchased | ReservationCancelled</span>
+    payload             <span class="ty">JSONB</span>           <span class="kw">NOT NULL</span>,
+    user_id             <span class="ty">UUID</span>            <span class="kw">NOT NULL</span>,
+    event_id            <span class="ty">UUID</span>            <span class="kw">NOT NULL</span>,  <span class="cm">-- FK lógico al Catalog BC</span>
+    correlation_id      <span class="ty">UUID</span>,
+    causation_id        <span class="ty">UUID</span>,
+    occurred_at         <span class="ty">TIMESTAMPTZ</span>     <span class="kw">NOT NULL DEFAULT</span> <span class="fn">NOW</span>(),
+    <span class="kw">CONSTRAINT</span> <span class="cn">uq_res_aggregate_version</span> <span class="kw">UNIQUE</span> (aggregate_id, aggregate_version)
+);
+<span class="kw">CREATE INDEX</span> idx_res_events_aggregate <span class="kw">ON</span> reservation_events (aggregate_id, aggregate_version);
+<span class="kw">CREATE INDEX</span> idx_res_events_user      <span class="kw">ON</span> reservation_events (user_id, occurred_at DESC);
+<span class="kw">CREATE INDEX</span> idx_res_events_event_id  <span class="kw">ON</span> reservation_events (event_id);
+
+<span class="cm">-- ─────────────────────────────────────────────
+-- RESERVATION_PROJECTIONS  (Read model)
+-- ─────────────────────────────────────────────</span>
+<span class="kw">CREATE TABLE</span> reservation_projections (
+    id              <span class="ty">UUID</span>            <span class="kw">PRIMARY KEY</span>,  <span class="cm">-- reservation_id</span>
+    user_id         <span class="ty">UUID</span>            <span class="kw">NOT NULL</span>,
+    event_id        <span class="ty">UUID</span>            <span class="kw">NOT NULL</span>,
+    status          <span class="ty">reservation_status</span> <span class="kw">NOT NULL</span>,
+    items           <span class="ty">JSONB</span>           <span class="kw">NOT NULL</span>,  <span class="cm">-- [{seat_id, category_id, price, currency}]</span>
+    total_amount    <span class="ty">NUMERIC(10,2)</span>   <span class="kw">NOT NULL</span>,
+    currency        <span class="ty">CHAR(3)</span>         <span class="kw">NOT NULL DEFAULT</span> <span class="st">'USD'</span>,
+    expires_at      <span class="ty">TIMESTAMPTZ</span>     <span class="kw">NOT NULL</span>,  <span class="cm">-- created_at + 10 minutes</span>
+    idempotency_key <span class="ty">UUID</span>            <span class="kw">UNIQUE</span>,    <span class="cm">-- para Payment Service</span>
+    last_event_seq  <span class="ty">BIGINT</span>          <span class="kw">NOT NULL</span>,
+    created_at      <span class="ty">TIMESTAMPTZ</span>     <span class="kw">NOT NULL DEFAULT</span> <span class="fn">NOW</span>(),
+    updated_at      <span class="ty">TIMESTAMPTZ</span>     <span class="kw">NOT NULL DEFAULT</span> <span class="fn">NOW</span>()
+);
+<span class="kw">CREATE INDEX</span> idx_res_proj_user       <span class="kw">ON</span> reservation_projections (user_id);
+<span class="kw">CREATE INDEX</span> idx_res_proj_event      <span class="kw">ON</span> reservation_projections (event_id);
+<span class="kw">CREATE INDEX</span> idx_res_proj_expires    <span class="kw">ON</span> reservation_projections (expires_at)
+    <span class="kw">WHERE</span> status = <span class="st">'PENDING'</span>;  <span class="cm">-- partial index: solo reservas activas</span>
+
+<span class="cm">-- ─────────────────────────────────────────────
+-- OUTBOX  (Transactional Outbox Pattern)
+-- INSERT en misma transacción que reservation_events.
+-- Worker lee y publica en Kafka, luego marca published=TRUE.
+-- ─────────────────────────────────────────────</span>
+<span class="kw">CREATE TABLE</span> outbox_events (
+    id              <span class="ty">BIGSERIAL</span>       <span class="kw">PRIMARY KEY</span>,
+    aggregate_id    <span class="ty">UUID</span>            <span class="kw">NOT NULL</span>,
+    aggregate_type  <span class="ty">VARCHAR(50)</span>     <span class="kw">NOT NULL DEFAULT</span> <span class="st">'Reservation'</span>,
+    event_type      <span class="ty">VARCHAR(80)</span>     <span class="kw">NOT NULL</span>,
+    kafka_topic     <span class="ty">VARCHAR(120)</span>    <span class="kw">NOT NULL</span>,
+    payload         <span class="ty">JSONB</span>           <span class="kw">NOT NULL</span>,
+    kafka_key       <span class="ty">VARCHAR(100)</span>    <span class="kw">NOT NULL</span>,  <span class="cm">-- event_id para particionamiento</span>
+    published       <span class="ty">BOOLEAN</span>         <span class="kw">NOT NULL DEFAULT</span> <span class="kw">FALSE</span>,
+    published_at    <span class="ty">TIMESTAMPTZ</span>,
+    retry_count     <span class="ty">SMALLINT</span>        <span class="kw">NOT NULL DEFAULT</span> 0,
+    created_at      <span class="ty">TIMESTAMPTZ</span>     <span class="kw">NOT NULL DEFAULT</span> <span class="fn">NOW</span>()
+);
+<span class="kw">CREATE INDEX</span> idx_outbox_unpublished <span class="kw">ON</span> outbox_events (created_at)
+    <span class="kw">WHERE</span> published = <span class="kw">FALSE</span>;  <span class="cm">-- partial index: solo pendientes</span>
+
+<span class="cm">-- ─────────────────────────────────────────────
+-- TICKETS  (generados al TicketPurchased)
+-- ─────────────────────────────────────────────</span>
+<span class="kw">CREATE TABLE</span> tickets (
+    id              <span class="ty">UUID</span>            <span class="kw">PRIMARY KEY DEFAULT</span> <span class="fn">gen_random_uuid</span>(),
+    reservation_id  <span class="ty">UUID</span>            <span class="kw">NOT NULL</span>,
+    user_id         <span class="ty">UUID</span>            <span class="kw">NOT NULL</span>,
+    event_id        <span class="ty">UUID</span>            <span class="kw">NOT NULL</span>,
+    seat_id         <span class="ty">UUID</span>            <span class="kw">NOT NULL UNIQUE</span>,  <span class="cm">-- un ticket por asiento</span>
+    category_id     <span class="ty">UUID</span>            <span class="kw">NOT NULL</span>,
+    price_paid      <span class="ty">NUMERIC(10,2)</span>   <span class="kw">NOT NULL</span>,
+    currency        <span class="ty">CHAR(3)</span>         <span class="kw">NOT NULL</span>,
+    qr_code_hash    <span class="ty">VARCHAR(64)</span>     <span class="kw">NOT NULL UNIQUE</span>,  <span class="cm">-- SHA-256 para validación en venue</span>
+    issued_at       <span class="ty">TIMESTAMPTZ</span>     <span class="kw">NOT NULL DEFAULT</span> <span class="fn">NOW</span>()
+);
+<span class="kw">CREATE INDEX</span> idx_tickets_user  <span class="kw">ON</span> tickets (user_id);
+<span class="kw">CREATE INDEX</span> idx_tickets_event <span class="kw">ON</span> tickets (event_id);
+
+<span class="cm">-- ENUMs</span>
+<span class="kw">CREATE TYPE</span> reservation_status <span class="kw">AS ENUM</span> (<span class="st">'PENDING'</span>, <span class="st">'PURCHASED'</span>, <span class="st">'EXPIRED'</span>, <span class="st">'CANCELLED'</span>);</pre>
+  </div>
+</div>
+
+<!-- ══════════════ PAYMENT ══════════════ -->
+<div class="view" id="view-payment">
+  <div class="info-box" style="border-left-color:var(--teal)">
+    <p><strong>Patrón: Idempotency Keys + Outbox.</strong> La tabla <code style="font-family:monospace;font-size:11px;color:var(--teal)">idempotency_keys</code> garantiza que reintentos de pago (por network failures, timeouts, etc.) no generen cobros duplicados. El <code style="font-family:monospace;font-size:11px;color:var(--teal)">idempotency_key</code> es generado por el Reservation Service al crear la reserva y pasado como parte del comando de pago.</p>
+  </div>
+
+  <div class="sql-block">
+    <div class="sql-block-header">
+      <span class="sql-block-title">payment_db — PostgreSQL (Cloud SQL)</span>
+      <span class="sql-block-badge" style="background:var(--teal-bg);color:var(--teal)">Idempotency + Outbox</span>
+    </div>
+    <pre><span class="cm">-- ─────────────────────────────────────────────
+-- PAYMENTS  (Aggregate Root)
+-- ─────────────────────────────────────────────</span>
+<span class="kw">CREATE TABLE</span> payments (
+    id                  <span class="ty">UUID</span>            <span class="kw">PRIMARY KEY DEFAULT</span> <span class="fn">gen_random_uuid</span>(),
+    reservation_id      <span class="ty">UUID</span>            <span class="kw">NOT NULL UNIQUE</span>,  <span class="cm">-- 1:1 con Reservation</span>
+    user_id             <span class="ty">UUID</span>            <span class="kw">NOT NULL</span>,
+    idempotency_key     <span class="ty">UUID</span>            <span class="kw">NOT NULL UNIQUE</span>,  <span class="cm">-- de Reservation Service</span>
+    amount              <span class="ty">NUMERIC(10,2)</span>   <span class="kw">NOT NULL CHECK</span> (amount > 0),
+    currency            <span class="ty">CHAR(3)</span>         <span class="kw">NOT NULL</span>,
+    status              <span class="ty">payment_status</span>  <span class="kw">NOT NULL DEFAULT</span> <span class="st">'PENDING'</span>,
+    <span class="cm">-- PENDING | PROCESSING | SUCCESS | FAILED | REFUNDED</span>
+    gateway             <span class="ty">VARCHAR(30)</span>     <span class="kw">NOT NULL</span>,        <span class="cm">-- 'STRIPE' | 'PAYU'</span>
+    gateway_payment_id  <span class="ty">VARCHAR(200)</span>    <span class="kw">UNIQUE</span>,          <span class="cm">-- ID externo del gateway</span>
+    gateway_response    <span class="ty">JSONB</span>,                            <span class="cm">-- raw response para auditoría</span>
+    fraud_score         <span class="ty">DECIMAL(4,3)</span>,                     <span class="cm">-- 0.000 - 1.000</span>
+    fraud_decision      <span class="ty">VARCHAR(20)</span>,                      <span class="cm">-- APPROVED | REJECTED | REVIEW</span>
+    failure_reason      <span class="ty">VARCHAR(200)</span>,
+    retry_count         <span class="ty">SMALLINT</span>        <span class="kw">NOT NULL DEFAULT</span> 0,
+    processed_at        <span class="ty">TIMESTAMPTZ</span>,
+    created_at          <span class="ty">TIMESTAMPTZ</span>     <span class="kw">NOT NULL DEFAULT</span> <span class="fn">NOW</span>(),
+    updated_at          <span class="ty">TIMESTAMPTZ</span>     <span class="kw">NOT NULL DEFAULT</span> <span class="fn">NOW</span>()
+);
+<span class="kw">CREATE INDEX</span> idx_payments_user        <span class="kw">ON</span> payments (user_id, created_at DESC);
+<span class="kw">CREATE INDEX</span> idx_payments_status      <span class="kw">ON</span> payments (status) <span class="kw">WHERE</span> status = <span class="st">'PENDING'</span>;
+<span class="kw">CREATE INDEX</span> idx_payments_gateway_pid <span class="kw">ON</span> payments (gateway_payment_id) <span class="kw">WHERE</span> gateway_payment_id <span class="kw">IS NOT NULL</span>;
+
+<span class="cm">-- ─────────────────────────────────────────────
+-- IDEMPOTENCY_KEYS  (exactly-once semántics)
+-- Se consulta ANTES de procesar. Si ya existe → retorna cached result.
+-- ─────────────────────────────────────────────</span>
+<span class="kw">CREATE TABLE</span> idempotency_keys (
+    key             <span class="ty">UUID</span>            <span class="kw">PRIMARY KEY</span>,
+    user_id         <span class="ty">UUID</span>            <span class="kw">NOT NULL</span>,
+    operation       <span class="ty">VARCHAR(50)</span>     <span class="kw">NOT NULL</span>,   <span class="cm">-- 'PROCESS_PAYMENT'</span>
+    request_hash    <span class="ty">VARCHAR(64)</span>     <span class="kw">NOT NULL</span>,   <span class="cm">-- SHA-256 del request body</span>
+    response_status <span class="ty">SMALLINT</span>,                   <span class="cm">-- HTTP status del resultado</span>
+    response_body   <span class="ty">JSONB</span>,                       <span class="cm">-- respuesta cacheada</span>
+    payment_id      <span class="ty">UUID</span>            <span class="kw">REFERENCES</span> payments(id),
+    expires_at      <span class="ty">TIMESTAMPTZ</span>     <span class="kw">NOT NULL</span>,   <span class="cm">-- TTL: 24 horas</span>
+    created_at      <span class="ty">TIMESTAMPTZ</span>     <span class="kw">NOT NULL DEFAULT</span> <span class="fn">NOW</span>()
+);
+<span class="kw">CREATE INDEX</span> idx_idemp_expires <span class="kw">ON</span> idempotency_keys (expires_at);  <span class="cm">-- cleanup job</span>
+<span class="kw">CREATE INDEX</span> idx_idemp_user    <span class="kw">ON</span> idempotency_keys (user_id);
+
+<span class="cm">-- ─────────────────────────────────────────────
+-- PAYMENT_OUTBOX  (mismo patrón que Reservation)
+-- ─────────────────────────────────────────────</span>
+<span class="kw">CREATE TABLE</span> payment_outbox (
+    id              <span class="ty">BIGSERIAL</span>       <span class="kw">PRIMARY KEY</span>,
+    aggregate_id    <span class="ty">UUID</span>            <span class="kw">NOT NULL</span>,   <span class="cm">-- payment_id</span>
+    event_type      <span class="ty">VARCHAR(80)</span>     <span class="kw">NOT NULL</span>,   <span class="cm">-- PaymentProcessed | PaymentFailed | PaymentRefunded</span>
+    kafka_topic     <span class="ty">VARCHAR(120)</span>    <span class="kw">NOT NULL</span>,
+    payload         <span class="ty">JSONB</span>           <span class="kw">NOT NULL</span>,
+    kafka_key       <span class="ty">VARCHAR(100)</span>    <span class="kw">NOT NULL</span>,
+    published       <span class="ty">BOOLEAN</span>         <span class="kw">NOT NULL DEFAULT</span> <span class="kw">FALSE</span>,
+    published_at    <span class="ty">TIMESTAMPTZ</span>,
+    retry_count     <span class="ty">SMALLINT</span>        <span class="kw">NOT NULL DEFAULT</span> 0,
+    created_at      <span class="ty">TIMESTAMPTZ</span>     <span class="kw">NOT NULL DEFAULT</span> <span class="fn">NOW</span>()
+);
+<span class="kw">CREATE INDEX</span> idx_payment_outbox_pending <span class="kw">ON</span> payment_outbox (created_at) <span class="kw">WHERE</span> published = <span class="kw">FALSE</span>;
+
+<span class="cm">-- ENUM</span>
+<span class="kw">CREATE TYPE</span> payment_status <span class="kw">AS ENUM</span> (<span class="st">'PENDING'</span>, <span class="st">'PROCESSING'</span>, <span class="st">'SUCCESS'</span>, <span class="st">'FAILED'</span>, <span class="st">'REFUNDED'</span>);</pre>
+  </div>
+</div>
+
+<!-- ══════════════ REDIS ══════════════ -->
+<div class="view" id="view-redis">
+  <div class="info-box" style="border-left-color:var(--coral)">
+    <p><strong>Redis Cluster (GCP Memorystore) — 6 nodos (3 master + 3 replica).</strong> Cada estructura de datos está diseñada para su patrón de acceso específico. Nomenclatura de keys: <code style="font-family:monospace;font-size:11px;color:var(--coral)">{dominio}:{entidad}:{id}</code>. TTLs siempre definidos — ninguna key vive indefinidamente. AOF persistence habilitado para durabilidad.</p>
+  </div>
+
+  <div class="redis-grid">
+
+    <div class="redis-card">
+      <div class="redis-card-hd">
+        <i class="ti ti-sort-ascending-numbers redis-card-icon" aria-hidden="true"></i>
+        <div>
+          <div class="redis-card-title">Virtual Queue — Sorted Set</div>
+          <div class="redis-card-sub">Una key por evento. Score = timestamp de ingreso (FIFO determinista)</div>
+        </div>
+      </div>
+      <div class="redis-card-body">
+        <code class="redis-key-ex">queue:{eventId}  →  ZSET</code>
+        <div class="redis-ops">
+          <span class="redis-op">ZADD</span><span class="redis-op">ZRANK</span><span class="redis-op">ZCARD</span><span class="redis-op">ZPOPMIN</span><span class="redis-op">ZREM</span>
+        </div>
+        <div class="redis-detail">
+          <strong>Score:</strong> Unix timestamp en microsegundos (para desempate).<br>
+          <strong>Member:</strong> userId (UUID string).<br>
+          <strong>TTL:</strong> sale_closes_at + 1h (limpieza automática).<br>
+          <strong>Complejidad:</strong> ZADD O(log N), ZRANK O(log N) — para 5M usuarios ~23 comparaciones.<br>
+          <strong>Partición:</strong> clave incluye eventId → mismo nodo del cluster para todas las ops del evento.
+        </div>
+      </div>
+    </div>
+
+    <div class="redis-card">
+      <div class="redis-card-hd">
+        <i class="ti ti-key redis-card-icon" aria-hidden="true"></i>
+        <div>
+          <div class="redis-card-title">Queue Access Tokens</div>
+          <div class="redis-card-sub">JWT de acceso al checkout con TTL estricto</div>
+        </div>
+      </div>
+      <div class="redis-card-body">
+        <code class="redis-key-ex">queue:token:{userId}:{eventId}  →  STRING</code>
+        <div class="redis-ops">
+          <span class="redis-op">SET NX</span><span class="redis-op">GET</span><span class="redis-op">DEL</span><span class="redis-op">TTL</span>
+        </div>
+        <div class="redis-detail">
+          <strong>Value:</strong> JWT firmado RS256 con claims: {userId, eventId, queuePosition, iat, exp}.<br>
+          <strong>TTL:</strong> 900 segundos (15 minutos). No renovable.<br>
+          <strong>SET NX:</strong> garantiza que un usuario no puede tener dos tokens activos para el mismo evento.<br>
+          <strong>Invalidación:</strong> DEL al completar reserva o al expirar.
+        </div>
+      </div>
+    </div>
+
+    <div class="redis-card">
+      <div class="redis-card-hd">
+        <i class="ti ti-binary redis-card-icon" aria-hidden="true"></i>
+        <div>
+          <div class="redis-card-title">Inventory — Seat Bitmap</div>
+          <div class="redis-card-sub">Un bit por asiento. 0=disponible, 1=ocupado. O(1) check.</div>
+        </div>
+      </div>
+      <div class="redis-card-body">
+        <code class="redis-key-ex">inventory:bitmap:{eventId}:{sectionId}  →  BITMAP</code>
+        <div class="redis-ops">
+          <span class="redis-op">GETBIT</span><span class="redis-op">SETBIT</span><span class="redis-op">BITCOUNT</span><span class="redis-op">BITPOS</span><span class="redis-op">EVAL (Lua)</span>
+        </div>
+        <div class="redis-detail">
+          <strong>Índice del bit:</strong> seat_number dentro de la sección.<br>
+          <strong>Lua script atómico (capa 1 anti-overbooking):</strong><br>
+          <code style="font-size:10px;color:var(--amber);display:block;margin:6px 0;font-family:monospace">EVAL "if redis.call('GETBIT',KEYS[1],ARGV[1])=='0' then redis.call('SETBIT',KEYS[1],ARGV[1],'1') return 1 else return 0 end" 1 key seatIdx</code>
+          <strong>Capacidad:</strong> 1 byte = 8 asientos. Venue de 50k asientos = 6.25KB por sección.<br>
+          <strong>TTL:</strong> event_date + 48h.
+        </div>
+      </div>
+    </div>
+
+    <div class="redis-card">
+      <div class="redis-card-hd">
+        <i class="ti ti-clock redis-card-icon" aria-hidden="true"></i>
+        <div>
+          <div class="redis-card-title">Reservation TTL</div>
+          <div class="redis-card-sub">Expiración automática de reservas temporales en 10 minutos</div>
+        </div>
+      </div>
+      <div class="redis-card-body">
+        <code class="redis-key-ex">reservation:ttl:{reservationId}  →  STRING</code>
+        <div class="redis-ops">
+          <span class="redis-op">SET EX</span><span class="redis-op">DEL</span><span class="redis-op">TTL</span><span class="redis-op">KEYSPACE EVENT</span>
+        </div>
+        <div class="redis-detail">
+          <strong>Value:</strong> JSON con {reservationId, userId, eventId, seatIds[]}.<br>
+          <strong>TTL:</strong> 600 segundos (10 minutos).<br>
+          <strong>Keyspace notification:</strong> <code style="font-size:10px;font-family:monospace;color:var(--amber)">notify-keyspace-events Ex</code> habilitado.<br>
+          El Reservation Service escucha el evento <code style="font-size:10px;font-family:monospace;color:var(--amber)">expired</code> y emite <code style="font-size:10px;font-family:monospace;color:var(--amber)">ReservationExpired</code> en Kafka para liberar asientos.
+        </div>
+      </div>
+    </div>
+
+    <div class="redis-card">
+      <div class="redis-card-hd">
+        <i class="ti ti-gauge redis-card-icon" aria-hidden="true"></i>
+        <div>
+          <div class="redis-card-title">Rate Limiting — Sliding Window</div>
+          <div class="redis-card-sub">Por userId y por IP. Previene abuso del endpoint de reservas.</div>
+        </div>
+      </div>
+      <div class="redis-card-body">
+        <code class="redis-key-ex">ratelimit:reserve:{userId}  →  STRING (contador)</code>
+        <code class="redis-key-ex" style="margin-top:6px">ratelimit:ip:{hashedIp}  →  STRING</code>
+        <div class="redis-ops">
+          <span class="redis-op">INCR</span><span class="redis-op">EXPIRE</span><span class="redis-op">GET</span>
+        </div>
+        <div class="redis-detail">
+          <strong>Límites:</strong> 10 reservas/minuto por userId, 50 requests/minuto por IP.<br>
+          <strong>Ventana:</strong> fixed window con EXPIRE 60s. Suficiente para protección; sliding window más costoso sin beneficio adicional aquí.<br>
+          <strong>Respuesta al exceder:</strong> HTTP 429 con header <code style="font-size:10px;font-family:monospace;color:var(--amber)">Retry-After</code>.
+        </div>
+      </div>
+    </div>
+
+    <div class="redis-card">
+      <div class="redis-card-hd">
+        <i class="ti ti-lock redis-card-icon" aria-hidden="true"></i>
+        <div>
+          <div class="redis-card-title">Distributed Lock — Redlock</div>
+          <div class="redis-card-sub">Redisson Redlock sobre N=3 nodos independientes. Quorum=2.</div>
+        </div>
+      </div>
+      <div class="redis-card-body">
+        <code class="redis-key-ex">lock:seat:{eventId}:{seatId}  →  STRING (lock token)</code>
+        <div class="redis-ops">
+          <span class="redis-op">SET NX PX</span><span class="redis-op">GET + EVAL</span><span class="redis-op">DEL (Lua)</span>
+        </div>
+        <div class="redis-detail">
+          <strong>TTL del lock:</strong> 5000ms (5 segundos — tiempo máximo de operación de reserva).<br>
+          <strong>Value:</strong> UUID único por cliente — previene que un cliente libere el lock de otro.<br>
+          <strong>Redlock:</strong> SET NX en 3 nodos independientes. Válido si ≥ 2 nodos responden y tiempo total &lt; TTL/2.<br>
+          <strong>Capa 2 anti-overbooking:</strong> operación atómica entre Lua script (Capa 1) y SELECT FOR UPDATE (Capa 3).
+        </div>
+      </div>
+    </div>
+
+    <div class="redis-card">
+      <div class="redis-card-hd">
+        <i class="ti ti-cache redis-card-icon" aria-hidden="true"></i>
+        <div>
+          <div class="redis-card-title">Event Catalog Cache</div>
+          <div class="redis-card-sub">Cache-aside para páginas de eventos y disponibilidad agregada</div>
+        </div>
+      </div>
+      <div class="redis-card-body">
+        <code class="redis-key-ex">catalog:event:{eventId}  →  STRING (JSON)</code>
+        <code class="redis-key-ex" style="margin-top:6px">catalog:availability:{eventId}  →  HASH</code>
+        <div class="redis-ops">
+          <span class="redis-op">SET EX</span><span class="redis-op">GET</span><span class="redis-op">HGET/HSET</span><span class="redis-op">DEL</span>
+        </div>
+        <div class="redis-detail">
+          <strong>catalog:event TTL:</strong> 300s (5 min). Invalidado en writes.<br>
+          <strong>catalog:availability:</strong> HASH con fields {section_id → available_count}. TTL 30s — refresh frecuente para mostrar disponibilidad actualizada.<br>
+          <strong>Cache-aside:</strong> miss → query DB → SET → return. El write invalida (DEL) no actualiza (evita stale write race).
+        </div>
+      </div>
+    </div>
+
+    <div class="redis-card">
+      <div class="redis-card-hd">
+        <i class="ti ti-user-check redis-card-icon" aria-hidden="true"></i>
+        <div>
+          <div class="redis-card-title">User Session / Auth State</div>
+          <div class="redis-card-sub">Estado de autenticación y preferencias de sesión</div>
+        </div>
+      </div>
+      <div class="redis-card-body">
+        <code class="redis-key-ex">session:{userId}  →  HASH</code>
+        <div class="redis-ops">
+          <span class="redis-op">HSET</span><span class="redis-op">HGETALL</span><span class="redis-op">EXPIRE</span><span class="redis-op">DEL</span>
+        </div>
+        <div class="redis-detail">
+          <strong>Fields:</strong> {last_active, active_reservations[], active_queue_events[], device_id, preferences}.<br>
+          <strong>TTL:</strong> 3600s (1 hora de inactividad). EXPIRE se renueva en cada request.<br>
+          <strong>Uso:</strong> verificar límite de reservas activas por usuario sin consultar DB en cada request.
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════ PGVECTOR ══════════════ -->
+<div class="view" id="view-vector">
+  <div class="info-box" style="border-left-color:var(--pink)">
+    <p><strong>Spring AI + pgvector + Vertex AI text-embedding-004.</strong> Los embeddings se generan automáticamente cuando un evento es creado o modificado en el Catalog BC (consumiendo el evento Kafka <code style="font-family:monospace;font-size:11px;color:var(--pink)">EventCreated / EventUpdated</code>). La dimensión 768 es la nativa de text-embedding-004. El índice HNSW permite búsquedas aproximadas O(log N) con recall &gt; 95%.</p>
+  </div>
+
+  <div class="sql-block">
+    <div class="sql-block-header">
+      <span class="sql-block-title">ai_db — PostgreSQL + pgvector extension</span>
+      <span class="sql-block-badge" style="background:var(--pink-bg);color:var(--pink)">Spring AI VectorStore</span>
+    </div>
+    <pre><span class="cm">-- Habilitar extensión</span>
+<span class="kw">CREATE EXTENSION IF NOT EXISTS</span> vector;
+
+<span class="cm">-- ─────────────────────────────────────────────
+-- EVENT_EMBEDDINGS  (VectorStore de Spring AI)
+-- Gestionada por Spring AI pgvector store abstraction
+-- ─────────────────────────────────────────────</span>
+<span class="kw">CREATE TABLE</span> event_embeddings (
+    id              <span class="ty">UUID</span>            <span class="kw">PRIMARY KEY DEFAULT</span> <span class="fn">gen_random_uuid</span>(),
+    event_id        <span class="ty">UUID</span>            <span class="kw">NOT NULL UNIQUE</span>,   <span class="cm">-- FK lógico a Catalog BC</span>
+    content         <span class="ty">TEXT</span>            <span class="kw">NOT NULL</span>,           <span class="cm">-- texto vectorizado: nombre + desc + artistas + venue + tags</span>
+    embedding       <span class="ty">vector(768)</span>     <span class="kw">NOT NULL</span>,           <span class="cm">-- text-embedding-004 output</span>
+    metadata        <span class="ty">JSONB</span>           <span class="kw">NOT NULL DEFAULT</span> <span class="st">'{}'</span>,
+    <span class="cm">-- metadata: {event_date, city, country, genre[], artists[], venue_name,
+    --            status, sale_opens_at, price_min, price_max}</span>
+    created_at      <span class="ty">TIMESTAMPTZ</span>     <span class="kw">NOT NULL DEFAULT</span> <span class="fn">NOW</span>(),
+    updated_at      <span class="ty">TIMESTAMPTZ</span>     <span class="kw">NOT NULL DEFAULT</span> <span class="fn">NOW</span>()
+);
+
+<span class="cm">-- Índice HNSW (Hierarchical Navigable Small World)
+-- Mejor trade-off recall/latencia para búsqueda semántica de alta demanda.
+-- ef_construction=128: mayor recall en build time.
+-- m=16: 16 conexiones por nodo — balance entre memoria y recall.</span>
+<span class="kw">CREATE INDEX</span> idx_event_embeddings_hnsw
+    <span class="kw">ON</span> event_embeddings <span class="kw">USING</span> <span class="fn">hnsw</span> (embedding <span class="fn">vector_cosine_ops</span>)
+    <span class="kw">WITH</span> (ef_construction = 128, m = 16);
+
+<span class="cm">-- Índice en metadata para filtros pre-retrieval
+-- (ej: buscar solo eventos PUBLISHED en un país)</span>
+<span class="kw">CREATE INDEX</span> idx_event_emb_metadata <span class="kw">ON</span> event_embeddings <span class="kw">USING</span> <span class="fn">gin</span>(metadata);
+<span class="kw">CREATE INDEX</span> idx_event_emb_event_id <span class="kw">ON</span> event_embeddings (event_id);
+
+<span class="cm">-- ─────────────────────────────────────────────
+-- CONVERSATION_SESSIONS  (ChatMemory para RAG chatbot)
+-- Spring AI ChatMemory abstraction
+-- ─────────────────────────────────────────────</span>
+<span class="kw">CREATE TABLE</span> conversation_sessions (
+    id              <span class="ty">UUID</span>            <span class="kw">PRIMARY KEY DEFAULT</span> <span class="fn">gen_random_uuid</span>(),
+    user_id         <span class="ty">UUID</span>            <span class="kw">NOT NULL</span>,
+    messages        <span class="ty">JSONB</span>           <span class="kw">NOT NULL DEFAULT</span> <span class="st">'[]'</span>,
+    <span class="cm">-- [{role: user|assistant, content: "...", timestamp: "..."}]</span>
+    last_active_at  <span class="ty">TIMESTAMPTZ</span>     <span class="kw">NOT NULL DEFAULT</span> <span class="fn">NOW</span>(),
+    created_at      <span class="ty">TIMESTAMPTZ</span>     <span class="kw">NOT NULL DEFAULT</span> <span class="fn">NOW</span>()
+);
+<span class="kw">CREATE INDEX</span> idx_conv_user <span class="kw">ON</span> conversation_sessions (user_id, last_active_at DESC);
+<span class="cm">-- Sessions inactivas por 24h → limpieza via background job</span>
+
+<span class="cm">-- ─────────────────────────────────────────────
+-- Ejemplo de query de búsqueda semántica
+-- Spring AI lo abstrae — útil para documentar
+-- ─────────────────────────────────────────────</span>
+<span class="cm">-- SELECT event_id, content, metadata,
+--        1 - (embedding <=> $1::vector) AS similarity
+-- FROM event_embeddings
+-- WHERE (metadata->>'status') = 'PUBLISHED'
+--   AND metadata @> '{"country": "PY"}'::jsonb
+-- ORDER BY embedding <=> $1::vector   -- operador de similitud coseno
+-- LIMIT 5;</span>
+
+<span class="cm">-- Spring AI pgvector config (application.yml):
+-- spring.ai.vectorstore.pgvector.dimensions=768
+-- spring.ai.vectorstore.pgvector.index-type=HNSW
+-- spring.ai.vectorstore.pgvector.distance-type=COSINE_DISTANCE</span></pre>
+  </div>
+</div>
+
+<!-- ══════════════ RELACIONES ══════════════ -->
+<div class="view" id="view-erd">
+  <div class="info-box" style="border-left-color:var(--purple)">
+    <p><strong>Modelo de datos distribuido.</strong> En una arquitectura de microservicios con Event Sourcing, <strong>no existen JOINs entre bounded contexts</strong>. Las relaciones cross-BC son lógicas (UUIDs compartidos) no físicas (foreign keys). Cada servicio es dueño de su schema y su base de datos. Las referencias cross-BC se resuelven via eventos de dominio o llamadas de API explícitas.</p>
+  </div>
+
+  <div class="erd-relations" style="margin-bottom:20px">
+    <div class="erd-rel-title">Relaciones dentro del Event Catalog BC</div>
+    <div class="erd-rel-item">
+      <span class="erd-from">events</span>
+      <span class="erd-card">N : 1</span>
+      <span class="erd-to">venues</span>
+      <span style="font-size:11px;color:var(--text2)">Un evento pertenece a un venue. REFERENCES con FK real.</span>
+      <span class="erd-note">ON DELETE RESTRICT</span>
+    </div>
+    <div class="erd-rel-item">
+      <span class="erd-from">events</span>
+      <span class="erd-card">N : N</span>
+      <span class="erd-to">artists</span>
+      <span style="font-size:11px;color:var(--text2)">Un evento tiene múltiples artistas. Tabla pivot event_artists.</span>
+      <span class="erd-note">Pivot: event_artists</span>
+    </div>
+    <div class="erd-rel-item">
+      <span class="erd-from">events</span>
+      <span class="erd-card">1 : N</span>
+      <span class="erd-to">ticket_categories</span>
+      <span style="font-size:11px;color:var(--text2)">Un evento tiene múltiples categorías de ticket (VIP, Campo, etc).</span>
+      <span class="erd-note">ON DELETE CASCADE</span>
+    </div>
+  </div>
+
+  <div class="erd-relations" style="margin-bottom:20px">
+    <div class="erd-rel-title">Relaciones lógicas cross-BC (sin FK físico — via UUID compartido)</div>
+    <div class="erd-rel-item">
+      <span class="erd-from">Catalog.events.id</span>
+      <span class="erd-card">lógico</span>
+      <span class="erd-to">Inventory.inventory_events.event_id</span>
+      <span style="font-size:11px;color:var(--text2)">Inventory es inicializado cuando Catalog emite EventPublished.</span>
+      <span class="erd-note">Kafka event</span>
+    </div>
+    <div class="erd-rel-item">
+      <span class="erd-from">Inventory.seat.id</span>
+      <span class="erd-card">lógico</span>
+      <span class="erd-to">Reservation.items[].seat_id</span>
+      <span style="font-size:11px;color:var(--text2)">Los items de una reserva referencian seats del Inventory BC.</span>
+      <span class="erd-note">UUID compartido</span>
+    </div>
+    <div class="erd-rel-item">
+      <span class="erd-from">Reservation.id</span>
+      <span class="erd-card">lógico 1:1</span>
+      <span class="erd-to">Payment.reservation_id</span>
+      <span style="font-size:11px;color:var(--text2)">Un pago corresponde a exactamente una reserva.</span>
+      <span class="erd-note">UNIQUE en Payment</span>
+    </div>
+    <div class="erd-rel-item">
+      <span class="erd-from">Reservation.idempotency_key</span>
+      <span class="erd-card">lógico 1:1</span>
+      <span class="erd-to">Payment.idempotency_keys.key</span>
+      <span style="font-size:11px;color:var(--text2)">Generado en Reservation, enviado a Payment como garantía de exactly-once.</span>
+      <span class="erd-note">UUID en request header</span>
+    </div>
+    <div class="erd-rel-item">
+      <span class="erd-from">Catalog.events.id</span>
+      <span class="erd-card">lógico</span>
+      <span class="erd-to">AI.event_embeddings.event_id</span>
+      <span style="font-size:11px;color:var(--text2)">Embedding generado al recibir EventCreated/Updated de Kafka.</span>
+      <span class="erd-note">Kafka async</span>
+    </div>
+  </div>
+
+  <div class="erd-relations">
+    <div class="erd-rel-title">Resumen de bases de datos por bounded context</div>
+    <div class="erd-rel-item">
+      <span style="font-family:monospace;font-size:11px;color:var(--blue);min-width:180px">catalog_db</span>
+      <span style="font-size:11px;color:var(--text2)">PostgreSQL Cloud SQL. Tables: venues, artists, events, event_artists, ticket_categories</span>
+      <span class="erd-note" style="color:var(--blue)">CQRS write-side</span>
+    </div>
+    <div class="erd-rel-item">
+      <span style="font-family:monospace;font-size:11px;color:var(--amber);min-width:180px">inventory_db</span>
+      <span style="font-size:11px;color:var(--text2)">PostgreSQL Cloud SQL. Tables: inventory_events, seat_projections, inventory_snapshots</span>
+      <span class="erd-note" style="color:var(--amber)">Event Sourcing</span>
+    </div>
+    <div class="erd-rel-item">
+      <span style="font-family:monospace;font-size:11px;color:var(--teal);min-width:180px">reservation_db</span>
+      <span style="font-size:11px;color:var(--text2)">PostgreSQL Cloud SQL. Tables: reservation_events, reservation_projections, outbox_events, tickets</span>
+      <span class="erd-note" style="color:var(--teal)">Event Sourcing + Outbox</span>
+    </div>
+    <div class="erd-rel-item">
+      <span style="font-family:monospace;font-size:11px;color:var(--teal);min-width:180px">payment_db</span>
+      <span style="font-size:11px;color:var(--text2)">PostgreSQL Cloud SQL. Tables: payments, idempotency_keys, payment_outbox</span>
+      <span class="erd-note" style="color:var(--teal)">Idempotency + Outbox</span>
+    </div>
+    <div class="erd-rel-item">
+      <span style="font-family:monospace;font-size:11px;color:var(--coral);min-width:180px">Redis Cluster</span>
+      <span style="font-size:11px;color:var(--text2)">GCP Memorystore. Keys: queue SortedSet, access tokens, seat bitmaps, reservation TTL, rate limits, locks, cache</span>
+      <span class="erd-note" style="color:var(--coral)">Multi-BC</span>
+    </div>
+    <div class="erd-rel-item">
+      <span style="font-family:monospace;font-size:11px;color:var(--pink);min-width:180px">ai_db</span>
+      <span style="font-size:11px;color:var(--text2)">PostgreSQL + pgvector. Tables: event_embeddings (vector 768), conversation_sessions</span>
+      <span class="erd-note" style="color:var(--pink)">Spring AI VectorStore</span>
+    </div>
+  </div>
+</div>
+
+<footer>TicketStorm · Data Model v1.0 · Matías Martínez · Bootcamp Arquitecturas Backend Gran Escala · Código Facilito 2026</footer>
+
+<script>
+function sw(tab){
+  const tabs=['catalog','inventory','reservation','payment','redis','vector','erd'];
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',tabs[i]===tab));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+tab).classList.add('active');
+}
+</script>
+</body>
+</html>

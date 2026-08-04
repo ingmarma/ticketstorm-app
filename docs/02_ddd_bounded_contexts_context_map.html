@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TicketStorm — DDD Bounded Contexts + Context Map</title>
+<link rel="stylesheet" href="https://unpkg.com/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg2: #161b22;
+    --bg3: #21262d;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.14);
+    --text: #e6edf3;
+    --text2: #8b949e;
+    --text3: #6e7681;
+    --blue: #58a6ff;
+    --blue-bg: rgba(88,166,255,0.08);
+    --blue-border: rgba(88,166,255,0.22);
+    --teal: #3fb950;
+    --teal-bg: rgba(63,185,80,0.08);
+    --teal-border: rgba(63,185,80,0.22);
+    --purple: #d2a8ff;
+    --purple-bg: rgba(210,168,255,0.08);
+    --purple-border: rgba(210,168,255,0.22);
+    --amber: #e3b341;
+    --amber-bg: rgba(227,179,65,0.08);
+    --amber-border: rgba(227,179,65,0.22);
+    --coral: #f78166;
+    --coral-bg: rgba(247,129,102,0.08);
+    --coral-border: rgba(247,129,102,0.22);
+    --pink: #f778ba;
+    --pink-bg: rgba(247,120,186,0.08);
+    --pink-border: rgba(247,120,186,0.22);
+    --green: #3fb950;
+    --green-bg: rgba(63,185,80,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, 'Segoe UI', sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  .header {
+    padding: 24px 32px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .project-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--purple-bg);
+    border: 1px solid var(--purple-border);
+    color: var(--purple);
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  h1 { font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .header p { color: var(--text2); font-size: 12px; max-width: 720px; line-height: 1.6; }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex;
+    gap: 0;
+    padding: 0 32px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+  }
+  .tab {
+    padding: 12px 20px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text3);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .tab:hover { color: var(--text2); }
+  .tab.active { color: var(--text); border-bottom-color: var(--purple); }
+
+  /* ── VIEWS ── */
+  .view { display: none; padding: 24px 32px; }
+  .view.active { display: block; }
+
+  /* ═══ VIEW 1: BOUNDED CONTEXTS GRID ═══ */
+  .bc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+  }
+  .bc-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.15s;
+  }
+  .bc-card:hover { transform: translateY(-2px); }
+  .bc-header {
+    padding: 14px 16px 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .bc-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .bc-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+  .bc-subtitle { font-size: 11px; color: var(--text3); line-height: 1.4; }
+  .bc-type-badge {
+    margin-left: auto;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 20px;
+    flex-shrink: 0;
+    align-self: flex-start;
+  }
+
+  .bc-body { padding: 14px 16px; }
+  .bc-section { margin-bottom: 12px; }
+  .bc-section:last-child { margin-bottom: 0; }
+  .bc-section-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 7px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .bc-section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .entity-list { display: flex; flex-direction: column; gap: 4px; }
+  .entity-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    background: var(--bg3);
+    border-radius: 6px;
+    font-size: 11px;
+  }
+  .entity-name { font-weight: 600; color: var(--text); font-family: ui-monospace, monospace; font-size: 11px; }
+  .entity-type {
+    font-size: 9px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .type-root   { background: rgba(88,166,255,0.15); color: var(--blue); }
+  .type-entity { background: rgba(63,185,80,0.15);  color: var(--teal); }
+  .type-vo     { background: rgba(210,168,255,0.15); color: var(--purple); }
+  .type-event  { background: rgba(227,179,65,0.15);  color: var(--amber); }
+  .type-svc    { background: rgba(247,129,102,0.15); color: var(--coral); }
+
+  .op-list { display: flex; flex-wrap: wrap; gap: 5px; }
+  .op-pill {
+    font-size: 10px;
+    font-family: ui-monospace, monospace;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: var(--bg3);
+    color: var(--text2);
+    border: 1px solid var(--border);
+  }
+
+  .rule-list { list-style: none; padding: 0; }
+  .rule-list li {
+    font-size: 11px;
+    color: var(--text2);
+    padding: 3px 0;
+    display: flex;
+    gap: 7px;
+    border-bottom: 1px solid var(--border);
+  }
+  .rule-list li:last-child { border-bottom: none; }
+  .rule-list li::before { content: "◆"; font-size: 8px; color: var(--text3); flex-shrink: 0; margin-top: 3px; }
+
+  .tech-row { display: flex; flex-wrap: wrap; gap: 5px; }
+  .tech-chip {
+    font-size: 10px;
+    font-weight: 500;
+    padding: 3px 9px;
+    border-radius: 20px;
+    border: 1px solid;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* color variants for BC cards */
+  .bc-catalog  { border-color: var(--blue-border); }
+  .bc-catalog:hover { border-color: var(--blue); }
+  .bc-catalog .bc-icon  { background: var(--blue-bg); color: var(--blue); }
+  .bc-catalog .bc-type-badge { background: var(--blue-bg); color: var(--blue); }
+  .bc-catalog .tech-chip { background: var(--blue-bg); border-color: var(--blue-border); color: var(--blue); }
+
+  .bc-queue    { border-color: var(--coral-border); }
+  .bc-queue:hover { border-color: var(--coral); }
+  .bc-queue .bc-icon  { background: var(--coral-bg); color: var(--coral); }
+  .bc-queue .bc-type-badge { background: var(--coral-bg); color: var(--coral); }
+  .bc-queue .tech-chip { background: var(--coral-bg); border-color: var(--coral-border); color: var(--coral); }
+
+  .bc-inventory{ border-color: var(--amber-border); }
+  .bc-inventory:hover { border-color: var(--amber); }
+  .bc-inventory .bc-icon  { background: var(--amber-bg); color: var(--amber); }
+  .bc-inventory .bc-type-badge { background: var(--amber-bg); color: var(--amber); }
+  .bc-inventory .tech-chip { background: var(--amber-bg); border-color: var(--amber-border); color: var(--amber); }
+
+  .bc-reservation { border-color: var(--teal-border); }
+  .bc-reservation:hover { border-color: var(--teal); }
+  .bc-reservation .bc-icon  { background: var(--teal-bg); color: var(--teal); }
+  .bc-reservation .bc-type-badge { background: var(--teal-bg); color: var(--teal); }
+  .bc-reservation .tech-chip { background: var(--teal-bg); border-color: var(--teal-border); color: var(--teal); }
+
+  .bc-payment  { border-color: var(--green-bg); }
+  .bc-payment:hover { border-color: var(--teal); }
+  .bc-payment .bc-icon  { background: var(--green-bg); color: var(--teal); }
+  .bc-payment .bc-type-badge { background: var(--green-bg); color: var(--teal); }
+  .bc-payment .tech-chip { background: var(--green-bg); border-color: var(--teal-border); color: var(--teal); }
+
+  .bc-notification { border-color: var(--purple-border); }
+  .bc-notification:hover { border-color: var(--purple); }
+  .bc-notification .bc-icon  { background: var(--purple-bg); color: var(--purple); }
+  .bc-notification .bc-type-badge { background: var(--purple-bg); color: var(--purple); }
+  .bc-notification .tech-chip { background: var(--purple-bg); border-color: var(--purple-border); color: var(--purple); }
+
+  .bc-ai       { border-color: var(--pink-border); }
+  .bc-ai:hover { border-color: var(--pink); }
+  .bc-ai .bc-icon  { background: var(--pink-bg); color: var(--pink); }
+  .bc-ai .bc-type-badge { background: var(--pink-bg); color: var(--pink); }
+  .bc-ai .tech-chip { background: var(--pink-bg); border-color: var(--pink-border); color: var(--pink); }
+
+  /* ═══ VIEW 2: CONTEXT MAP ═══ */
+  .context-map-wrapper {
+    overflow-x: auto;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+  }
+  .context-map-wrapper svg { display: block; }
+
+  /* ═══ VIEW 3: UBIQUITOUS LANGUAGE ═══ */
+  .lang-intro {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-bottom: 16px;
+    font-size: 12px;
+    color: var(--text2);
+    line-height: 1.6;
+    border-left: 3px solid var(--purple);
+  }
+  .lang-table-wrapper { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  th {
+    background: var(--bg3);
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text3);
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--bg3); }
+  .term { font-family: ui-monospace, monospace; font-weight: 600; color: var(--text); font-size: 12px; }
+  .context-badge {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  /* ═══ VIEW 4: SAGA FLOW ═══ */
+  .saga-wrapper {
+    overflow-x: auto;
+  }
+  .saga-step-row {
+    display: flex;
+    gap: 0;
+    margin-bottom: 0;
+    position: relative;
+  }
+  .saga-participant {
+    flex: 1;
+    min-width: 130px;
+    text-align: center;
+  }
+  .saga-participant-header {
+    padding: 10px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 8px;
+    margin-bottom: 0;
+    border: 1px solid;
+  }
+  .saga-lane {
+    border-right: 1px dashed var(--border2);
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 4px;
+    position: relative;
+  }
+  .saga-event {
+    font-size: 9px;
+    font-family: ui-monospace, monospace;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    text-align: center;
+  }
+  .saga-compensate {
+    border: 1px dashed;
+    border-radius: 4px;
+  }
+  .saga-arrow-right { color: var(--text3); font-size: 16px; }
+
+  footer {
+    text-align: center;
+    color: var(--text3);
+    font-size: 11px;
+    padding: 20px 32px;
+    border-top: 1px solid var(--border);
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="project-tag"><i class="ti ti-hexagons" aria-hidden="true"></i> DDD — Domain-Driven Design</div>
+  <h1>TicketStorm — Bounded Contexts + Context Map</h1>
+  <p>Descomposición del dominio usando Domain-Driven Design. Siete bounded contexts con responsabilidades claras, lenguaje ubicuo por dominio, relaciones upstream/downstream explícitas y context map con patrones de integración.</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('bc')"><i class="ti ti-hexagons" aria-hidden="true"></i> Bounded Contexts</div>
+  <div class="tab" onclick="switchTab('map')"><i class="ti ti-sitemap" aria-hidden="true"></i> Context Map</div>
+  <div class="tab" onclick="switchTab('lang')"><i class="ti ti-language" aria-hidden="true"></i> Ubiquitous Language</div>
+  <div class="tab" onclick="switchTab('saga')"><i class="ti ti-arrows-shuffle" aria-hidden="true"></i> Saga Flow</div>
+</div>
+
+<!-- ═══════════════════ TAB 1: BOUNDED CONTEXTS ═══════════════════ -->
+<div class="view active" id="view-bc">
+<div class="bc-grid">
+
+  <!-- EVENT CATALOG -->
+  <div class="bc-card bc-catalog">
+    <div class="bc-header">
+      <div class="bc-icon"><i class="ti ti-list-search" aria-hidden="true"></i></div>
+      <div>
+        <div class="bc-title">Event Catalog</div>
+        <div class="bc-subtitle">Gestión de eventos, venues, artistas y fechas</div>
+      </div>
+      <span class="bc-type-badge">Supporting</span>
+    </div>
+    <div class="bc-body">
+      <div class="bc-section">
+        <div class="bc-section-title">Agregados y Entidades</div>
+        <div class="entity-list">
+          <div class="entity-item"><span class="entity-name">Event</span><span class="entity-type type-root">Aggregate Root</span></div>
+          <div class="entity-item"><span class="entity-name">Venue</span><span class="entity-type type-entity">Entity</span></div>
+          <div class="entity-item"><span class="entity-name">Artist</span><span class="entity-type type-entity">Entity</span></div>
+          <div class="entity-item"><span class="entity-name">EventDate</span><span class="entity-type type-vo">Value Object</span></div>
+          <div class="entity-item"><span class="entity-name">TicketCategory</span><span class="entity-type type-vo">Value Object</span></div>
+        </div>
+      </div>
+      <div class="bc-section">
+        <div class="bc-section-title">Domain Events</div>
+        <div class="op-list">
+          <span class="op-pill">EventCreated</span>
+          <span class="op-pill">EventPublished</span>
+          <span class="op-pill">EventCancelled</span>
+          <span class="op-pill">SaleWindowOpened</span>
+        </div>
+      </div>
+      <div class="bc-section">
+        <div class="bc-section-title">Reglas de Dominio</div>
+        <ul class="rule-list">
+          <li>Un Event pertenece a exactamente un Venue</li>
+          <li>SaleWindowOpened dispara fila virtual en Queue BC</li>
+          <li>Evento no puede publicarse sin al menos una TicketCategory</li>
+        </ul>
+      </div>
+      <div class="bc-section">
+        <div class="bc-section-title">Tech</div>
+        <div class="tech-row">
+          <span class="tech-chip">PostgreSQL</span>
+          <span class="tech-chip">Elasticsearch</span>
+          <span class="tech-chip">Redis cache</span>
+          <span class="tech-chip">pgvector (AI)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIRTUAL QUEUE -->
+  <div class="bc-card bc-queue">
+    <div class="bc-header">
+      <div class="bc-icon"><i class="ti ti-queue" aria-hidden="true"></i></div>
+      <div>
+        <div class="bc-title">Virtual Queue</div>
+        <div class="bc-subtitle">Fila virtual determinista para acceso controlado al checkout</div>
+      </div>
+      <span class="bc-type-badge">Core</span>
+    </div>
+    <div class="bc-body">
+      <div class="bc-section">
+        <div class="bc-section-title">Agregados y Entidades</div>
+        <div class="entity-list">
+          <div class="entity-item"><span class="entity-name">Queue</span><span class="entity-type type-root">Aggregate Root</span></div>
+          <div class="entity-item"><span class="entity-name">QueueEntry</span><span class="entity-type type-entity">Entity</span></div>
+          <div class="entity-item"><span class="entity-name">QueuePosition</span><span class="entity-type type-vo">Value Object</span></div>
+          <div class="entity-item"><span class="entity-name">AccessToken</span><span class="entity-type type-vo">Value Object</span></div>
+        </div>
+      </div>
+      <div class="bc-section">
+        <div class="bc-section-title">Domain Events</div>
+        <div class="op-list">
+          <span class="op-pill">UserJoinedQueue</span>
+          <span class="op-pill">UserAdvancedInQueue</span>
+          <span class="op-pill">AccessGranted</span>
+          <span class="op-pill">AccessTokenExpired</span>
+        </div>
+      </div>
+      <div class="bc-section">
+        <div class="bc-section-title">Reglas de Dominio</div>
+        <ul class="rule-list">
+          <li>Un usuario tiene máximo una posición activa por evento</li>
+          <li>AccessToken expira en 15 minutos — no renovable</li>
+          <li>Posición determinada por timestamp de ingreso (FIFO)</li>
+          <li>Throughput configurable: N usuarios/seg por evento</li>
+        </ul>
+      </div>
+      <div class="bc-section">
+        <div class="bc-section-title">Tech</div>
+        <div class="tech-row">
+          <span class="tech-chip">Redis Sorted Set</span>
+          <span class="tech-chip">WebSocket/WebFlux</span>
+          <span class="tech-chip">Virtual Threads</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- INVENTORY -->
+  <div class="bc-card bc-inventory">
+    <div class="bc-header">
+      <div class="bc-icon"><i class="ti ti-armchair" aria-hidden="true"></i></div>
+      <div>
+        <div class="bc-title">Inventory</div>
+        <div class="bc-subtitle">Disponibilidad de asientos — Sistema CP anti-overbooking</div>
+      </div>
+      <span class="bc-type-badge">Core</span>
+    </div>
+    <div class="bc-body">
+      <div class="bc-section">
+        <div class="bc-section-title">Agregados y Entidades</div>
+        <div class="entity-list">
+          <div class="entity-item"><span class="entity-name">SeatInventory</span><span class="entity-type type-root">Aggregate Root</span></div>
+          <div class="entity-item"><span class="entity-name">Seat</span><span class="entity-type type-entity">Entity</span></div>
+          <div class="entity-item"><span class="entity-name">Section</span><span class="entity-type type-entity">Entity</span></div>
+          <div class="entity-item"><span class="entity-name">SeatStatus</span><span class="entity-type type-vo">Value Object</span></div>
+        </div>
+      </div>
+      <div class="bc-section">
+        <div class="bc-section-title">Domain Events (Event Sourcing)</div>
+        <div class="op-list">
+          <span class="op-pill">SeatReserved</span>
+          <span class="op-pill">SeatReleased</span>
+          <span class="op-pill">SeatPurchased</span>
+          <span class="op-pill">InventoryInitialized</span>
+        </div>
+      </div>
+      <div class="bc-section">
+        <div class="bc-section-title">Invariantes de Dominio</div>
+        <ul class="rule-list">
+          <li>No pueden existir dos SeatReserved activos para el mismo asiento</li>
+          <li>Estado = proyección del log de eventos (Event Sourcing)</li>
+          <li>3 capas de protección: Lua atómico → Redlock → SELECT FOR UPDATE</li>
+        </ul>
+      </div>
+      <div class="bc-section">
+        <div class="bc-section-title">Tech</div>
+        <div class="tech-row">
+          <span class="tech-chip">Redis Bitmap</span>
+          <span class="tech-chip">Redisson Redlock</span>
+          <span class="tech-chip">PostgreSQL ES</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESERVATION -->
+  <div class="bc-card bc-reservation">
+    <div class="bc-header">
+      <div class="bc-icon"><i class="ti ti-clock-check" aria-hidden="true"></i></div>
+      <div>
+        <div class="bc-title">Reservation</div>
+        <div class="bc-subtitle">Reserva temporal (10min) + orquestación de compra</div>
+      </div>
+      <span class="bc-type-badge">Core</span>
+    </div>
+    <div class="bc-body">
+      <div class="bc-section">
+        <div class="bc-section-title">Agregados y Entidades</div>
+        <div class="entity-list">
+          <div class="entity-item"><span class="entity-name">Reservation</span><span class="entity-type type-root">Aggregate Root</span></div>
+          <div class="entity-item"><span class="entity-name">ReservationItem</span><span class="entity-type type-entity">Entity</span></div>
+          <div class="entity-item"><span class="entity-name">ReservationExpiry</span><span class="entity-type type-vo">Value Object</span></div>
+          <div class="entity-item"><span class="entity-name">Money</span><span class="entity-type type-vo">Value Object</span></div>
+        </div>
+      </div>
+      <div class="bc-section">
+        <div class="bc-section-title">Domain Events (Event Sourcing)</div>
+        <div class="op-list">
+          <span class="op-pill">ReservationCreated</span>
+          <span class="op-pill">ReservationExpired</span>
+          <span class="op-pill">TicketPurchased</span>
+          <span class="op-pill">ReservationCancelled</span>
+        </div>
+      </div>
+      <div class="bc-section">
+        <div class="bc-section-title">Reglas de Dominio</div>
+        <ul class="rule-list">
+          <li>Reserva expira exactamente a los 10 minutos (TTL Redis)</li>
+          <li>Máximo 4 tickets por reserva por usuario por evento</li>
+          <li>Saga compensatorio libera asientos si pago falla</li>
+        </ul>
+      </div>
+      <div class="bc-section">
+        <div class="bc-section-title">Tech</div>
+        <div class="tech-row">
+          <span class="tech-chip">PostgreSQL Event Store</span>
+          <span class="tech-chip">Redis TTL</span>
+          <span class="tech-chip">Kafka Saga</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAYMENT -->
+  <div class="bc-card bc-payment">
+    <div class="bc-header">
+      <div class="bc-icon"><i class="ti ti-credit-card" aria-hidden="true"></i></div>
+      <div>
+        <div class="bc-title">Payment</div>
+        <div class="bc-subtitle">Procesamiento de cobro con idempotencia y detección de fraude</div>
+      </div>
+      <span class="bc-type-badge">Supporting</span>
+    </div>
+    <div class="bc-body">
+      <div class="bc-section">
+        <div class="bc-section-title">Agregados y Entidades</div>
+        <div class="entity-list">
+          <div class="entity-item"><span class="entity-name">Payment</span><span class="entity-type type-root">Aggregate Root</span></div>
+          <div class="entity-item"><span class="entity-name">IdempotencyKey</span><span class="entity-type type-vo">Value Object</span></div>
+          <div class="entity-item"><span class="entity-name">FraudScore</span><span class="entity-type type-vo">Value Object</span></div>
+          <div class="entity-item"><span class="entity-name">PaymentGateway</span><span class="entity-type type-svc">Domain Service</span></div>
+        </div>
+      </div>
+      <div class="bc-section">
+        <div class="bc-section-title">Domain Events</div>
+        <div class="op-list">
+          <span class="op-pill">PaymentProcessed</span>
+          <span class="op-pill">PaymentFailed</span>
+          <span class="op-pill">PaymentRefunded</span>
+          <span class="op-pill">FraudDetected</span>
+        </div>
+      </div>
+      <div class="bc-section">
+        <div class="bc-section-title">Reglas de Dominio</div>
+        <ul class="rule-list">
+          <li>FraudScore &gt; 0.8 rechaza el pago automáticamente</li>
+          <li>Idempotency Key garantiza exactly-once cobro</li>
+          <li>ACL traduce concepto de "orden de pago" del gateway externo</li>
+        </ul>
+      </div>
+      <div class="bc-section">
+        <div class="bc-section-title">Tech</div>
+        <div class="tech-row">
+          <span class="tech-chip">PostgreSQL</span>
+          <span class="tech-chip">Resilience4j</span>
+          <span class="tech-chip">Stripe / PayU</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NOTIFICATION -->
+  <div class="bc-card bc-notification">
+    <div class="bc-header">
+      <div class="bc-icon"><i class="ti ti-bell-ringing" aria-hidden="true"></i></div>
+      <div>
+        <div class="bc-title">Notification</div>
+        <div class="bc-subtitle">Entrega de notificaciones event-driven con outbox pattern</div>
+      </div>
+      <span class="bc-type-badge">Generic</span>
+    </div>
+    <div class="bc-body">
+      <div class="bc-section">
+        <div class="bc-section-title">Agregados y Entidades</div>
+        <div class="entity-list">
+          <div class="entity-item"><span class="entity-name">Notification</span><span class="entity-type type-root">Aggregate Root</span></div>
+          <div class="entity-item"><span class="entity-name">NotificationTemplate</span><span class="entity-type type-entity">Entity</span></div>
+          <div class="entity-item"><span class="entity-name">DeliveryChannel</span><span class="entity-type type-vo">Value Object</span></div>
+        </div>
+      </div>
+      <div class="bc-section">
+        <div class="bc-section-title">Domain Events</div>
+        <div class="op-list">
+          <span class="op-pill">NotificationSent</span>
+          <span class="op-pill">NotificationFailed</span>
+          <span class="op-pill">BulkNotificationQueued</span>
+        </div>
+      </div>
+      <div class="bc-section">
+        <div class="bc-section-title">Reglas de Dominio</div>
+        <ul class="rule-list">
+          <li>Outbox pattern garantiza at-least-once delivery</li>
+          <li>Fan-out masivo para apertura de ventas (5M notificaciones)</li>
+          <li>Rate limiting por canal: email max 100/seg, SMS 50/seg</li>
+        </ul>
+      </div>
+      <div class="bc-section">
+        <div class="bc-section-title">Tech</div>
+        <div class="tech-row">
+          <span class="tech-chip">Kafka consumer</span>
+          <span class="tech-chip">Outbox Table</span>
+          <span class="tech-chip">GCP Pub/Sub fan-out</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI DISCOVERY -->
+  <div class="bc-card bc-ai">
+    <div class="bc-header">
+      <div class="bc-icon"><i class="ti ti-brain" aria-hidden="true"></i></div>
+      <div>
+        <div class="bc-title">AI Discovery</div>
+        <div class="bc-subtitle">Búsqueda semántica, chatbot RAG y scoring de fraude</div>
+      </div>
+      <span class="bc-type-badge">Supporting</span>
+    </div>
+    <div class="bc-body">
+      <div class="bc-section">
+        <div class="bc-section-title">Agregados y Entidades</div>
+        <div class="entity-list">
+          <div class="entity-item"><span class="entity-name">EventEmbedding</span><span class="entity-type type-root">Aggregate Root</span></div>
+          <div class="entity-item"><span class="entity-name">ConversationSession</span><span class="entity-type type-entity">Entity</span></div>
+          <div class="entity-item"><span class="entity-name">SemanticQuery</span><span class="entity-type type-vo">Value Object</span></div>
+          <div class="entity-item"><span class="entity-name">FraudSignal</span><span class="entity-type type-vo">Value Object</span></div>
+        </div>
+      </div>
+      <div class="bc-section">
+        <div class="bc-section-title">Capacidades Spring AI</div>
+        <div class="op-list">
+          <span class="op-pill">ChatClient (Gemini)</span>
+          <span class="op-pill">VectorStore (pgvector)</span>
+          <span class="op-pill">RAG Advisor</span>
+          <span class="op-pill">Function Calling</span>
+          <span class="op-pill">ChatMemory</span>
+        </div>
+      </div>
+      <div class="bc-section">
+        <div class="bc-section-title">Reglas de Dominio</div>
+        <ul class="rule-list">
+          <li>Embedding generado automáticamente al crear/modificar evento</li>
+          <li>RAG retrieval top-5 eventos similares como contexto LLM</li>
+          <li>Fraud scoring NO está en critical path de disponibilidad</li>
+        </ul>
+      </div>
+      <div class="bc-section">
+        <div class="bc-section-title">Tech</div>
+        <div class="tech-row">
+          <span class="tech-chip">Spring AI 1.x</span>
+          <span class="tech-chip">Vertex AI Gemini</span>
+          <span class="tech-chip">pgvector</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /bc-grid -->
+</div><!-- /view-bc -->
+
+<!-- ═══════════════════ TAB 2: CONTEXT MAP ═══════════════════ -->
+<div class="view" id="view-map">
+  <div style="margin-bottom:14px;font-size:12px;color:var(--text2);line-height:1.6;background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--purple);border-radius:8px;padding:12px 16px">
+    El Context Map muestra las relaciones entre bounded contexts: <strong style="color:var(--text)">U (Upstream)</strong> provee el modelo, <strong style="color:var(--text)">D (Downstream)</strong> consume. Los patrones de integración determinan el tipo de acoplamiento.
+    <span style="display:inline-flex;gap:12px;margin-top:8px;flex-wrap:wrap">
+      <span style="font-size:11px;color:var(--teal)">— Kafka async</span>
+      <span style="font-size:11px;color:var(--blue)">— gRPC/REST sync</span>
+      <span style="font-size:11px;color:var(--amber)">- - ACL (Anti-corruption Layer)</span>
+    </span>
+  </div>
+  <div class="context-map-wrapper">
+    <svg width="100%" viewBox="0 0 860 640" role="img">
+      <title>Context Map TicketStorm — relaciones entre bounded contexts</title>
+      <desc>Diagrama que muestra los 7 bounded contexts y sus relaciones de integración upstream/downstream</desc>
+      <defs>
+        <marker id="arr-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#3fb950" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="arr-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#58a6ff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="arr-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#e3b341" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="arr-pink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#f778ba" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+
+      <!-- ── Catalog (top center) ── -->
+      <g>
+        <rect x="300" y="30" width="260" height="80" rx="10" fill="rgba(88,166,255,0.08)" stroke="rgba(88,166,255,0.35)" stroke-width="1"/>
+        <text x="430" y="60" text-anchor="middle" font-size="13" font-weight="700" fill="#58a6ff" font-family="-apple-system,sans-serif">Event Catalog</text>
+        <text x="430" y="78" text-anchor="middle" font-size="11" fill="#8b949e" font-family="-apple-system,sans-serif">Supporting Domain</text>
+        <text x="430" y="96" text-anchor="middle" font-size="10" fill="#6e7681" font-family="-apple-system,sans-serif">PostgreSQL · Elasticsearch · pgvector</text>
+      </g>
+
+      <!-- ── Virtual Queue (mid-left) ── -->
+      <g>
+        <rect x="30" y="200" width="220" height="80" rx="10" fill="rgba(247,129,102,0.08)" stroke="rgba(247,129,102,0.35)" stroke-width="1"/>
+        <text x="140" y="230" text-anchor="middle" font-size="13" font-weight="700" fill="#f78166" font-family="-apple-system,sans-serif">Virtual Queue</text>
+        <text x="140" y="248" text-anchor="middle" font-size="11" fill="#8b949e" font-family="-apple-system,sans-serif">Core Domain</text>
+        <text x="140" y="266" text-anchor="middle" font-size="10" fill="#6e7681" font-family="-apple-system,sans-serif">Redis SortedSet · WebSocket</text>
+      </g>
+
+      <!-- ── Inventory (mid-center) ── -->
+      <g>
+        <rect x="305" y="210" width="250" height="80" rx="10" fill="rgba(227,179,65,0.1)" stroke="rgba(227,179,65,0.45)" stroke-width="1.5"/>
+        <text x="430" y="240" text-anchor="middle" font-size="13" font-weight="700" fill="#e3b341" font-family="-apple-system,sans-serif">Inventory</text>
+        <text x="430" y="258" text-anchor="middle" font-size="11" fill="#8b949e" font-family="-apple-system,sans-serif">Core Domain — CP</text>
+        <text x="430" y="276" text-anchor="middle" font-size="10" fill="#6e7681" font-family="-apple-system,sans-serif">Redis Bitmap · Redlock · Event Sourcing</text>
+      </g>
+
+      <!-- ── Reservation (mid-right) ── -->
+      <g>
+        <rect x="610" y="200" width="220" height="80" rx="10" fill="rgba(63,185,80,0.08)" stroke="rgba(63,185,80,0.35)" stroke-width="1"/>
+        <text x="720" y="230" text-anchor="middle" font-size="13" font-weight="700" fill="#3fb950" font-family="-apple-system,sans-serif">Reservation</text>
+        <text x="720" y="248" text-anchor="middle" font-size="11" fill="#8b949e" font-family="-apple-system,sans-serif">Core Domain</text>
+        <text x="720" y="266" text-anchor="middle" font-size="10" fill="#6e7681" font-family="-apple-system,sans-serif">Event Sourcing · Saga · PostgreSQL</text>
+      </g>
+
+      <!-- ── Payment (bottom-right) ── -->
+      <g>
+        <rect x="610" y="420" width="220" height="80" rx="10" fill="rgba(63,185,80,0.07)" stroke="rgba(63,185,80,0.25)" stroke-width="1"/>
+        <text x="720" y="450" text-anchor="middle" font-size="13" font-weight="700" fill="#3fb950" font-family="-apple-system,sans-serif">Payment</text>
+        <text x="720" y="468" text-anchor="middle" font-size="11" fill="#8b949e" font-family="-apple-system,sans-serif">Supporting Domain</text>
+        <text x="720" y="486" text-anchor="middle" font-size="10" fill="#6e7681" font-family="-apple-system,sans-serif">Idempotency · Circuit Breaker · ACL</text>
+      </g>
+
+      <!-- ── Notification (bottom-left) ── -->
+      <g>
+        <rect x="30" y="420" width="220" height="80" rx="10" fill="rgba(210,168,255,0.07)" stroke="rgba(210,168,255,0.25)" stroke-width="1"/>
+        <text x="140" y="450" text-anchor="middle" font-size="13" font-weight="700" fill="#d2a8ff" font-family="-apple-system,sans-serif">Notification</text>
+        <text x="140" y="468" text-anchor="middle" font-size="11" fill="#8b949e" font-family="-apple-system,sans-serif">Generic Subdomain</text>
+        <text x="140" y="486" text-anchor="middle" font-size="10" fill="#6e7681" font-family="-apple-system,sans-serif">Outbox · Kafka · Pub/Sub fan-out</text>
+      </g>
+
+      <!-- ── AI Discovery (bottom-center) ── -->
+      <g>
+        <rect x="305" y="480" width="250" height="80" rx="10" fill="rgba(247,120,186,0.07)" stroke="rgba(247,120,186,0.28)" stroke-width="1"/>
+        <text x="430" y="510" text-anchor="middle" font-size="13" font-weight="700" fill="#f778ba" font-family="-apple-system,sans-serif">AI Discovery</text>
+        <text x="430" y="528" text-anchor="middle" font-size="11" fill="#8b949e" font-family="-apple-system,sans-serif">Supporting Domain</text>
+        <text x="430" y="546" text-anchor="middle" font-size="10" fill="#6e7681" font-family="-apple-system,sans-serif">Spring AI · Gemini · pgvector · RAG</text>
+      </g>
+
+      <!-- ═══ RELATIONSHIPS ═══ -->
+
+      <!-- Catalog → Queue (Kafka: SaleWindowOpened) -->
+      <path d="M380 110 L230 200" fill="none" stroke="#3fb950" stroke-width="1.2" stroke-dasharray="none" marker-end="url(#arr-teal)"/>
+      <text x="285" y="155" text-anchor="middle" font-size="10" fill="#3fb950" font-family="-apple-system,sans-serif">SaleWindowOpened</text>
+      <text x="285" y="167" text-anchor="middle" font-size="9" fill="#6e7681" font-family="-apple-system,sans-serif">Kafka · U→D</text>
+
+      <!-- Catalog → Inventory (REST: init inventory) -->
+      <path d="M430 110 L430 210" fill="none" stroke="#58a6ff" stroke-width="1.2" marker-end="url(#arr-blue)"/>
+      <text x="454" y="165" font-size="10" fill="#58a6ff" font-family="-apple-system,sans-serif">InitInventory</text>
+      <text x="454" y="177" font-size="9" fill="#6e7681" font-family="-apple-system,sans-serif">gRPC · U→D</text>
+
+      <!-- Catalog → AI Discovery (Kafka: sync embeddings) -->
+      <path d="M430 110 L430 480" fill="none" stroke="#f778ba" stroke-width="1" stroke-dasharray="5,3" marker-end="url(#arr-pink)"/>
+      <text x="438" y="310" font-size="10" fill="#f778ba" font-family="-apple-system,sans-serif">EventCreated</text>
+      <text x="438" y="322" font-size="9" fill="#6e7681" font-family="-apple-system,sans-serif">Kafka (embed sync)</text>
+
+      <!-- Queue → Inventory (REST: check availability) -->
+      <path d="M250 240 L305 245" fill="none" stroke="#58a6ff" stroke-width="1.2" marker-end="url(#arr-blue)"/>
+      <text x="278" y="232" text-anchor="middle" font-size="10" fill="#58a6ff" font-family="-apple-system,sans-serif">CheckAvail.</text>
+      <text x="278" y="244" text-anchor="middle" font-size="9" fill="#6e7681" font-family="-apple-system,sans-serif">REST · U→D</text>
+
+      <!-- Inventory → Reservation (Kafka: SeatLocked) -->
+      <path d="M555 250 L610 245" fill="none" stroke="#3fb950" stroke-width="1.2" marker-end="url(#arr-teal)"/>
+      <text x="582" y="237" text-anchor="middle" font-size="10" fill="#3fb950" font-family="-apple-system,sans-serif">SeatLocked</text>
+      <text x="582" y="249" text-anchor="middle" font-size="9" fill="#6e7681" font-family="-apple-system,sans-serif">Kafka Saga</text>
+
+      <!-- Reservation → Payment (Kafka: PaymentRequested) -->
+      <path d="M720 280 L720 420" fill="none" stroke="#3fb950" stroke-width="1.2" marker-end="url(#arr-teal)"/>
+      <text x="728" y="355" font-size="10" fill="#3fb950" font-family="-apple-system,sans-serif">PaymentRequested</text>
+      <text x="728" y="367" font-size="9" fill="#6e7681" font-family="-apple-system,sans-serif">Kafka Saga</text>
+
+      <!-- Payment → Reservation (Kafka: PaymentSuccess/Failed — compensación) -->
+      <path d="M608 450 L555 280" fill="none" stroke="#e3b341" stroke-width="1" stroke-dasharray="5,3" marker-end="url(#arr-amber)"/>
+      <text x="560" y="380" text-anchor="middle" font-size="10" fill="#e3b341" font-family="-apple-system,sans-serif">PaymentSuccess</text>
+      <text x="560" y="392" text-anchor="middle" font-size="9" fill="#6e7681" font-family="-apple-system,sans-serif">/ PaymentFailed</text>
+
+      <!-- Payment → AI Discovery (REST sync: fraud score) -->
+      <path d="M660 500 L555 530" fill="none" stroke="#f778ba" stroke-width="1" stroke-dasharray="5,3" marker-end="url(#arr-pink)"/>
+      <text x="598" y="510" text-anchor="middle" font-size="10" fill="#f778ba" font-family="-apple-system,sans-serif">FraudScore</text>
+      <text x="598" y="522" text-anchor="middle" font-size="9" fill="#6e7681" font-family="-apple-system,sans-serif">REST sync · ACL</text>
+
+      <!-- Reservation → Notification (Kafka) -->
+      <path d="M610 280 L280 440" fill="none" stroke="#3fb950" stroke-width="1" stroke-dasharray="none" marker-end="url(#arr-teal)"/>
+      <text x="420" y="348" text-anchor="middle" font-size="10" fill="#3fb950" font-family="-apple-system,sans-serif">TicketPurchased</text>
+      <text x="420" y="360" text-anchor="middle" font-size="9" fill="#6e7681" font-family="-apple-system,sans-serif">Kafka · pub/sub</text>
+
+      <!-- Inventory → Notification (Kafka: release) -->
+      <path d="M380 290 L200 420" fill="none" stroke="#3fb950" stroke-width="1" marker-end="url(#arr-teal)"/>
+      <text x="265" y="345" text-anchor="middle" font-size="10" fill="#3fb950" font-family="-apple-system,sans-serif">SeatReleased</text>
+      <text x="265" y="357" text-anchor="middle" font-size="9" fill="#6e7681" font-family="-apple-system,sans-serif">Kafka · U→D</text>
+
+      <!-- Queue → Notification (Kafka: AccessGranted) -->
+      <path d="M140 280 L140 420" fill="none" stroke="#3fb950" stroke-width="1.2" marker-end="url(#arr-teal)"/>
+      <text x="100" y="355" text-anchor="right" font-size="10" fill="#3fb950" font-family="-apple-system,sans-serif">AccessGranted</text>
+      <text x="100" y="367" font-size="9" fill="#6e7681" font-family="-apple-system,sans-serif">Kafka · U→D</text>
+
+      <!-- LEGEND -->
+      <rect x="30" y="580" width="800" height="46" rx="8" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.07)" stroke-width="0.5"/>
+      <line x1="50" y1="603" x2="90" y2="603" stroke="#3fb950" stroke-width="1.5"/>
+      <text x="96" y="607" font-size="10" fill="#8b949e" font-family="-apple-system,sans-serif">Kafka event-driven</text>
+      <line x1="210" y1="603" x2="250" y2="603" stroke="#58a6ff" stroke-width="1.5"/>
+      <text x="256" y="607" font-size="10" fill="#8b949e" font-family="-apple-system,sans-serif">gRPC/REST sync</text>
+      <line x1="370" y1="603" x2="410" y2="603" stroke="#e3b341" stroke-width="1.2" stroke-dasharray="5,3"/>
+      <text x="416" y="607" font-size="10" fill="#8b949e" font-family="-apple-system,sans-serif">Saga compensatorio</text>
+      <line x1="540" y1="603" x2="580" y2="603" stroke="#f778ba" stroke-width="1" stroke-dasharray="5,3"/>
+      <text x="586" y="607" font-size="10" fill="#8b949e" font-family="-apple-system,sans-serif">AI / ACL integración</text>
+    </svg>
+  </div>
+</div>
+
+<!-- ═══════════════════ TAB 3: UBIQUITOUS LANGUAGE ═══════════════════ -->
+<div class="view" id="view-lang">
+  <div class="lang-intro">
+    El lenguaje ubicuo (Ubiquitous Language) es el vocabulario compartido entre desarrolladores y expertos del dominio. Cada término tiene un significado preciso y único dentro de su bounded context. <strong style="color:var(--text)">El mismo término puede tener significados diferentes en contextos distintos</strong> — esto es intencional en DDD.
+  </div>
+  <div class="lang-table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Término</th>
+          <th>Contexto</th>
+          <th>Definición precisa en el dominio</th>
+          <th>Diferencias inter-contexto</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="term">Event</span></td>
+          <td><span class="context-badge" style="background:var(--blue-bg);color:var(--blue)">Catalog</span></td>
+          <td style="color:var(--text2)">Concierto, festival o show en un venue específico con fecha y artistas definidos</td>
+          <td style="color:var(--text3)">En Inventory es un "context" para el cual se gestiona disponibilidad de asientos</td>
+        </tr>
+        <tr>
+          <td><span class="term">Seat</span></td>
+          <td><span class="context-badge" style="background:var(--amber-bg);color:var(--amber)">Inventory</span></td>
+          <td style="color:var(--text2)">Unidad atómica de disponibilidad. Puede ser asiento numerado o entrada general (un "slot")</td>
+          <td style="color:var(--text3)">En Reservation es un ReservationItem — tiene precio y categoría asociada</td>
+        </tr>
+        <tr>
+          <td><span class="term">Reservation</span></td>
+          <td><span class="context-badge" style="background:var(--teal-bg);color:var(--teal)">Reservation</span></td>
+          <td style="color:var(--text2)">Bloqueo temporal de uno o más asientos por 10 minutos para un usuario específico con AccessToken válido</td>
+          <td style="color:var(--text3)">En el lenguaje de Payment es una "orden pendiente de pago"</td>
+        </tr>
+        <tr>
+          <td><span class="term">AccessToken</span></td>
+          <td><span class="context-badge" style="background:var(--coral-bg);color:var(--coral)">Queue</span></td>
+          <td style="color:var(--text2)">JWT firmado emitido cuando el usuario llega al frente de la fila. Autoriza acceso al checkout por 15 minutos. No renovable.</td>
+          <td style="color:var(--text3)">Distinto del JWT de autenticación de Keycloak — es un claim de posición de fila</td>
+        </tr>
+        <tr>
+          <td><span class="term">Overbooking</span></td>
+          <td><span class="context-badge" style="background:var(--amber-bg);color:var(--amber)">Inventory</span></td>
+          <td style="color:var(--text2)">Estado prohibido en el que existen más SeatReserved activos que asientos físicos disponibles. El invariante de dominio más crítico del sistema.</td>
+          <td style="color:var(--text3)">Término exclusivo del Inventory BC. Otros BCs no conocen este concepto directamente.</td>
+        </tr>
+        <tr>
+          <td><span class="term">SaleWindow</span></td>
+          <td><span class="context-badge" style="background:var(--blue-bg);color:var(--blue)">Catalog</span></td>
+          <td style="color:var(--text2)">Ventana temporal durante la cual tickets de un evento están disponibles para compra. Tiene fecha/hora de apertura que dispara el evento de dominio SaleWindowOpened.</td>
+          <td style="color:var(--text3)">SaleWindowOpened es el trigger que abre la Queue para ese eventId específico</td>
+        </tr>
+        <tr>
+          <td><span class="term">FraudScore</span></td>
+          <td><span class="context-badge" style="background:var(--pink-bg);color:var(--pink)">AI Discovery</span></td>
+          <td style="color:var(--text2)">Valor Float [0.0, 1.0] generado por el modelo ML de Vertex AI. Representa probabilidad de fraude. Umbral de rechazo: 0.8</td>
+          <td style="color:var(--text3)">En Payment BC es un Value Object que determina si el pago procede o es rechazado</td>
+        </tr>
+        <tr>
+          <td><span class="term">Queue Position</span></td>
+          <td><span class="context-badge" style="background:var(--coral-bg);color:var(--coral)">Queue</span></td>
+          <td style="color:var(--text2)">Rango del usuario en la fila (1-based). Calculado con ZRANK en Redis Sorted Set. Se actualiza en tiempo real via WebSocket push.</td>
+          <td style="color:var(--text3)">Concepto exclusivo del Queue BC — ningún otro BC conoce posiciones de fila</td>
+        </tr>
+        <tr>
+          <td><span class="term">IdempotencyKey</span></td>
+          <td><span class="context-badge" style="background:var(--teal-bg);color:var(--teal)">Payment</span></td>
+          <td style="color:var(--text2)">UUID único por intento de pago, enviado en header X-Idempotency-Key. Garantiza que reintentos no generen cobros duplicados.</td>
+          <td style="color:var(--text3)">Patrón técnico — generado en Reservation y pasado a Payment como parte del comando</td>
+        </tr>
+        <tr>
+          <td><span class="term">EventEmbedding</span></td>
+          <td><span class="context-badge" style="background:var(--pink-bg);color:var(--pink)">AI Discovery</span></td>
+          <td style="color:var(--text2)">Vector de dimensión 768 generado por text-embedding-004 de Vertex AI representando semánticamente el contenido de un evento (nombre, descripción, artistas, venue).</td>
+          <td style="color:var(--text3)">Concepto exclusivo del AI BC. Catalog BC solo conoce el evento como entidad de negocio.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════════════════ TAB 4: SAGA FLOW ═══════════════════ -->
+<div class="view" id="view-saga">
+  <div style="margin-bottom:16px;font-size:12px;color:var(--text2);line-height:1.6;background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--teal);border-radius:8px;padding:12px 16px">
+    <strong style="color:var(--text)">Saga coreografiado</strong> para el flujo de reserva y compra. Cada servicio publica eventos en Kafka — no hay orquestador central. Las líneas con fondo punteado en rojo son las <strong style="color:var(--coral)">transacciones compensatorias</strong> que se ejecutan si el pago falla.
+  </div>
+
+  <div style="overflow-x:auto">
+    <table style="min-width:700px;border-collapse:separate;border-spacing:0">
+      <thead>
+        <tr>
+          <th style="width:30px;color:var(--text3);font-size:10px;padding:8px">#</th>
+          <th style="background:rgba(247,129,102,0.1);color:var(--coral);font-size:11px;padding:10px 12px;border-radius:8px 0 0 0">Virtual Queue</th>
+          <th style="background:rgba(227,179,65,0.1);color:var(--amber);font-size:11px;padding:10px 12px">Inventory</th>
+          <th style="background:rgba(63,185,80,0.1);color:var(--teal);font-size:11px;padding:10px 12px">Reservation</th>
+          <th style="background:rgba(63,185,80,0.07);color:var(--teal);font-size:11px;padding:10px 12px">Payment</th>
+          <th style="background:rgba(210,168,255,0.07);color:var(--purple);font-size:11px;padding:10px 12px;border-radius:0 8px 0 0">Notification</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="color:var(--text3);font-size:11px;padding:10px 6px;text-align:center">1</td>
+          <td style="padding:8px 12px;border-bottom:1px solid var(--border)">
+            <div style="background:rgba(247,129,102,0.12);border:1px solid rgba(247,129,102,0.3);border-radius:6px;padding:6px 10px">
+              <div style="font-size:10px;font-family:monospace;color:var(--coral);font-weight:700">AccessGranted</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px">Emite cuando usuario llega al frente. Token JWT TTL=15min</div>
+            </div>
+          </td>
+          <td style="padding:8px 12px;border-bottom:1px solid var(--border)"></td>
+          <td style="padding:8px 12px;border-bottom:1px solid var(--border)"></td>
+          <td style="padding:8px 12px;border-bottom:1px solid var(--border)"></td>
+          <td style="padding:8px 12px;border-bottom:1px solid var(--border)">
+            <div style="background:rgba(210,168,255,0.07);border:1px solid rgba(210,168,255,0.2);border-radius:6px;padding:6px 10px">
+              <div style="font-size:10px;font-family:monospace;color:var(--purple);font-weight:700">NotificationSent</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px">Push: "es tu turno"</div>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td style="color:var(--text3);font-size:11px;padding:10px 6px;text-align:center">2</td>
+          <td style="padding:8px 12px;border-bottom:1px solid var(--border)"></td>
+          <td style="padding:8px 12px;border-bottom:1px solid var(--border)"></td>
+          <td style="padding:8px 12px;border-bottom:1px solid var(--border)">
+            <div style="background:rgba(63,185,80,0.1);border:1px solid rgba(63,185,80,0.3);border-radius:6px;padding:6px 10px">
+              <div style="font-size:10px;font-family:monospace;color:var(--teal);font-weight:700">ReservationCreated</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px">Usuario selecciona asientos. TTL Redis = 600s</div>
+            </div>
+          </td>
+          <td style="padding:8px 12px;border-bottom:1px solid var(--border)"></td>
+          <td style="padding:8px 12px;border-bottom:1px solid var(--border)"></td>
+        </tr>
+        <tr>
+          <td style="color:var(--text3);font-size:11px;padding:10px 6px;text-align:center">3</td>
+          <td style="padding:8px 12px;border-bottom:1px solid var(--border)"></td>
+          <td style="padding:8px 12px;border-bottom:1px solid var(--border)">
+            <div style="background:rgba(227,179,65,0.1);border:1px solid rgba(227,179,65,0.3);border-radius:6px;padding:6px 10px">
+              <div style="font-size:10px;font-family:monospace;color:var(--amber);font-weight:700">SeatLocked</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px">Consume ReservationCreated. Lua script atómico. Redlock.</div>
+            </div>
+          </td>
+          <td style="padding:8px 12px;border-bottom:1px solid var(--border)"></td>
+          <td style="padding:8px 12px;border-bottom:1px solid var(--border)"></td>
+          <td style="padding:8px 12px;border-bottom:1px solid var(--border)"></td>
+        </tr>
+        <tr>
+          <td style="color:var(--text3);font-size:11px;padding:10px 6px;text-align:center">4</td>
+          <td style="padding:8px 12px;border-bottom:1px solid var(--border)"></td>
+          <td style="padding:8px 12px;border-bottom:1px solid var(--border)"></td>
+          <td style="padding:8px 12px;border-bottom:1px solid var(--border)">
+            <div style="background:rgba(63,185,80,0.1);border:1px solid rgba(63,185,80,0.3);border-radius:6px;padding:6px 10px">
+              <div style="font-size:10px;font-family:monospace;color:var(--teal);font-weight:700">PaymentRequested</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px">Consume SeatLocked. Genera IdempotencyKey.</div>
+            </div>
+          </td>
+          <td style="padding:8px 12px;border-bottom:1px solid var(--border)"></td>
+          <td style="padding:8px 12px;border-bottom:1px solid var(--border)"></td>
+        </tr>
+        <tr>
+          <td style="color:var(--text3);font-size:11px;padding:10px 6px;text-align:center">5</td>
+          <td style="padding:8px 12px;border-bottom:1px solid var(--border)"></td>
+          <td style="padding:8px 12px;border-bottom:1px solid var(--border)"></td>
+          <td style="padding:8px 12px;border-bottom:1px solid var(--border)"></td>
+          <td style="padding:8px 12px;border-bottom:1px solid var(--border)">
+            <div style="background:rgba(63,185,80,0.07);border:1px solid rgba(63,185,80,0.25);border-radius:6px;padding:6px 10px">
+              <div style="font-size:10px;font-family:monospace;color:var(--teal);font-weight:700">PaymentProcessed ✓</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px">FraudScore OK. Gateway externo cobra. Idempotency guard.</div>
+            </div>
+          </td>
+          <td style="padding:8px 12px;border-bottom:1px solid var(--border)"></td>
+        </tr>
+        <tr>
+          <td style="color:var(--text3);font-size:11px;padding:10px 6px;text-align:center">6</td>
+          <td style="padding:8px 12px;border-bottom:1px solid var(--border)"></td>
+          <td style="padding:8px 12px;border-bottom:1px solid var(--border)">
+            <div style="background:rgba(227,179,65,0.1);border:1px solid rgba(227,179,65,0.3);border-radius:6px;padding:6px 10px">
+              <div style="font-size:10px;font-family:monospace;color:var(--amber);font-weight:700">SeatPurchased</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px">Estado final del asiento. Evento sourcing persistido.</div>
+            </div>
+          </td>
+          <td style="padding:8px 12px;border-bottom:1px solid var(--border)">
+            <div style="background:rgba(63,185,80,0.1);border:1px solid rgba(63,185,80,0.3);border-radius:6px;padding:6px 10px">
+              <div style="font-size:10px;font-family:monospace;color:var(--teal);font-weight:700">TicketPurchased</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px">Consume PaymentProcessed. Emite ticket con QR code.</div>
+            </div>
+          </td>
+          <td style="padding:8px 12px;border-bottom:1px solid var(--border)"></td>
+          <td style="padding:8px 12px;border-bottom:1px solid var(--border)">
+            <div style="background:rgba(210,168,255,0.07);border:1px solid rgba(210,168,255,0.2);border-radius:6px;padding:6px 10px">
+              <div style="font-size:10px;font-family:monospace;color:var(--purple);font-weight:700">NotificationSent</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px">Email + Push: ticket confirmado con QR</div>
+            </div>
+          </td>
+        </tr>
+        <!-- COMPENSATION -->
+        <tr>
+          <td style="padding:6px" colspan="6">
+            <div style="border-top:1px dashed rgba(247,129,102,0.4);padding-top:10px;margin-top:4px">
+              <span style="font-size:10px;font-weight:700;color:var(--coral);letter-spacing:0.06em;text-transform:uppercase">↩ Transacciones compensatorias (si PaymentFailed)</span>
+            </div>
+          </td>
+        </tr>
+        <tr style="background:rgba(247,129,102,0.03)">
+          <td style="color:var(--text3);font-size:11px;padding:10px 6px;text-align:center">C1</td>
+          <td style="padding:8px 12px;border-bottom:1px solid var(--border)"></td>
+          <td style="padding:8px 12px;border-bottom:1px solid var(--border)">
+            <div style="background:rgba(247,129,102,0.1);border:1px dashed rgba(247,129,102,0.4);border-radius:6px;padding:6px 10px">
+              <div style="font-size:10px;font-family:monospace;color:var(--coral);font-weight:700">SeatReleased ↩</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px">Bitmap bit → 0. Asiento disponible de nuevo.</div>
+            </div>
+          </td>
+          <td style="padding:8px 12px;border-bottom:1px solid var(--border)">
+            <div style="background:rgba(247,129,102,0.1);border:1px dashed rgba(247,129,102,0.4);border-radius:6px;padding:6px 10px">
+              <div style="font-size:10px;font-family:monospace;color:var(--coral);font-weight:700">ReservationCancelled ↩</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px">Consume PaymentFailed. Event sourcing finaliza saga.</div>
+            </div>
+          </td>
+          <td style="padding:8px 12px;border-bottom:1px solid var(--border)">
+            <div style="background:rgba(247,129,102,0.1);border:1px dashed rgba(247,129,102,0.4);border-radius:6px;padding:6px 10px">
+              <div style="font-size:10px;font-family:monospace;color:var(--coral);font-weight:700">PaymentFailed ✗</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px">Gateway falla o FraudScore &gt; 0.8. Emite compensación.</div>
+            </div>
+          </td>
+          <td style="padding:8px 12px;border-bottom:1px solid var(--border)">
+            <div style="background:rgba(210,168,255,0.07);border:1px solid rgba(210,168,255,0.2);border-radius:6px;padding:6px 10px">
+              <div style="font-size:10px;font-family:monospace;color:var(--purple);font-weight:700">NotificationSent</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px">Push: "pago fallido, tickets liberados"</div>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<footer>TicketStorm · DDD Bounded Contexts + Context Map v1.0 · Matías Martínez · Bootcamp Arquitecturas Backend Gran Escala · Código Facilito 2026</footer>
+
+<script>
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    const views = ['bc','map','lang','saga'];
+    t.classList.toggle('active', views[i] === tab);
+  });
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + tab).classList.add('active');
+}
+</script>
+</body>
+</html>

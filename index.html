@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TicketStorm — Sistema de Reservaciones de Alta Concurrencia</title>
+<meta name="description" content="Arquitectura backend a gran escala para venta de tickets. 50M DAU · 5M concurrentes · anti-overbooking. Proyecto final del Bootcamp de Arquitecturas Backend con Java — Código Facilito 2026.">
+<link rel="stylesheet" href="https://unpkg.com/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg2: #161b22;
+    --bg3: #21262d;
+    --bg4: #0a0e13;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.14);
+    --text: #e6edf3;
+    --text2: #8b949e;
+    --text3: #6e7681;
+    --blue: #58a6ff;
+    --blue-bg: rgba(88,166,255,0.08);
+    --blue-b: rgba(88,166,255,0.22);
+    --teal: #3fb950;
+    --teal-bg: rgba(63,185,80,0.08);
+    --teal-b: rgba(63,185,80,0.22);
+    --purple: #d2a8ff;
+    --purple-bg: rgba(210,168,255,0.08);
+    --purple-b: rgba(210,168,255,0.22);
+    --amber: #e3b341;
+    --amber-bg: rgba(227,179,65,0.08);
+    --amber-b: rgba(227,179,65,0.22);
+    --coral: #f78166;
+    --coral-bg: rgba(247,129,102,0.08);
+    --coral-b: rgba(247,129,102,0.22);
+    --pink: #f778ba;
+    --pink-bg: rgba(247,120,186,0.08);
+    --pink-b: rgba(247,120,186,0.22);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, 'Segoe UI', 'Inter', sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: inherit; text-decoration: none; }
+
+  /* ══════════════════════ NAV ══════════════════════ */
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(13, 17, 23, 0.85);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: -0.01em;
+  }
+  .nav-brand-icon {
+    width: 26px; height: 26px;
+    background: linear-gradient(135deg, var(--blue), var(--pink));
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--bg); font-size: 14px;
+  }
+  .nav-links {
+    display: flex;
+    gap: 28px;
+    align-items: center;
+  }
+  .nav-link {
+    font-size: 13px;
+    color: var(--text2);
+    transition: color 0.15s;
+    font-weight: 500;
+  }
+  .nav-link:hover { color: var(--text); }
+  .nav-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--text);
+    color: var(--bg);
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    transition: transform 0.15s, background 0.15s;
+  }
+  .nav-cta:hover {
+    background: #fff;
+    transform: translateY(-1px);
+  }
+
+  /* ══════════════════════ HERO ══════════════════════ */
+  .hero {
+    position: relative;
+    padding: 100px 32px 80px;
+    overflow: hidden;
+    text-align: center;
+  }
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .hero-bg::before {
+    content: '';
+    position: absolute;
+    top: -200px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 900px;
+    height: 900px;
+    background:
+      radial-gradient(circle at 30% 40%, rgba(88, 166, 255, 0.14), transparent 55%),
+      radial-gradient(circle at 70% 60%, rgba(247, 120, 186, 0.12), transparent 55%),
+      radial-gradient(circle at 50% 80%, rgba(210, 168, 255, 0.10), transparent 55%);
+    filter: blur(60px);
+  }
+  .hero-grid-bg {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse at center, black 30%, transparent 70%);
+    -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 70%);
+  }
+  .hero-inner {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border2);
+    color: var(--text2);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 28px;
+  }
+  .hero-badge-dot {
+    width: 6px; height: 6px;
+    background: var(--teal);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--teal);
+  }
+  .hero-badge strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  .hero-title {
+    font-size: clamp(48px, 8vw, 96px);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1.02;
+    margin-bottom: 22px;
+    background: linear-gradient(180deg, var(--text) 0%, rgba(230, 237, 243, 0.75) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .hero-title-accent {
+    background: linear-gradient(135deg, var(--blue) 0%, var(--pink) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .hero-subtitle {
+    font-size: clamp(18px, 2vw, 22px);
+    color: var(--text2);
+    max-width: 640px;
+    margin: 0 auto 44px;
+    line-height: 1.5;
+  }
+  .hero-subtitle strong { color: var(--text); font-weight: 600; }
+
+  .hero-cta-row {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 60px;
+  }
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--text);
+    color: var(--bg);
+    padding: 13px 22px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.15s;
+    border: 1px solid var(--text);
+  }
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(230, 237, 243, 0.15);
+    background: #fff;
+  }
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.04);
+    color: var(--text);
+    padding: 13px 22px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.15s;
+    border: 1px solid var(--border2);
+  }
+  .btn-secondary:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.25);
+    transform: translateY(-2px);
+  }
+
+  .hero-tech {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .hero-tech-label {
+    font-size: 11px;
+    color: var(--text3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-right: 8px;
+    font-weight: 600;
+  }
+  .hero-tech-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    padding: 5px 11px;
+    border-radius: 20px;
+    border: 1px solid;
+    font-weight: 500;
+  }
+  .tp-blue   { color: var(--blue);   border-color: var(--blue-b);   background: var(--blue-bg); }
+  .tp-teal   { color: var(--teal);   border-color: var(--teal-b);   background: var(--teal-bg); }
+  .tp-amber  { color: var(--amber);  border-color: var(--amber-b);  background: var(--amber-bg); }
+  .tp-purple { color: var(--purple); border-color: var(--purple-b); background: var(--purple-bg); }
+  .tp-coral  { color: var(--coral);  border-color: var(--coral-b);  background: var(--coral-bg); }
+  .tp-pink   { color: var(--pink);   border-color: var(--pink-b);   background: var(--pink-bg); }
+
+  /* ══════════════════════ STATS BAR ══════════════════════ */
+  .stats-section {
+    padding: 20px 32px 80px;
+    position: relative;
+  }
+  .stats-container {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .stat-cell {
+    background: var(--bg);
+    padding: 28px 20px;
+    text-align: center;
+    transition: background 0.2s;
+  }
+  .stat-cell:hover { background: var(--bg2); }
+  .stat-value {
+    font-size: 42px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    margin-bottom: 4px;
+    background: linear-gradient(135deg, var(--text), var(--text2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .stat-cell.accent-blue   .stat-value { background: linear-gradient(135deg, var(--blue), #7ac4ff); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .stat-cell.accent-coral  .stat-value { background: linear-gradient(135deg, var(--coral), #ffa08a); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .stat-cell.accent-pink   .stat-value { background: linear-gradient(135deg, var(--pink), #ff9ad0); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .stat-cell.accent-teal   .stat-value { background: linear-gradient(135deg, var(--teal), #6adb7d); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    font-weight: 600;
+  }
+
+  /* ══════════════════════ SECTION ══════════════════════ */
+  .section {
+    padding: 80px 32px;
+    position: relative;
+  }
+  .section-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .section-header {
+    text-align: center;
+    margin-bottom: 56px;
+  }
+  .section-eyebrow {
+    display: inline-block;
+    font-size: 12px;
+    color: var(--blue);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .section-title {
+    font-size: clamp(32px, 4vw, 48px);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    margin-bottom: 14px;
+  }
+  .section-subtitle {
+    font-size: 17px;
+    color: var(--text2);
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.5;
+  }
+
+  /* ══════════════════════ DELIVERABLES ══════════════════════ */
+  .deliv-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  .deliv-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.2s;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+  .deliv-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 100% 0%, rgba(var(--card-rgb, 88, 166, 255), 0.08), transparent 60%);
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  .deliv-card:hover {
+    border-color: var(--border2);
+    transform: translateY(-3px);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+  }
+  .deliv-card:hover::before { opacity: 1; }
+
+  .deliv-card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .deliv-icon {
+    width: 44px; height: 44px;
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .deliv-meta {
+    flex: 1;
+    min-width: 0;
+  }
+  .deliv-number {
+    font-family: 'SF Mono', ui-monospace, monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: var(--text3);
+    margin-bottom: 4px;
+  }
+  .deliv-title {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-bottom: 3px;
+    color: var(--text);
+    line-height: 1.2;
+  }
+  .deliv-subtitle {
+    font-size: 13px;
+    color: var(--text3);
+    font-weight: 500;
+  }
+  .deliv-desc {
+    font-size: 14px;
+    color: var(--text2);
+    line-height: 1.6;
+  }
+  .deliv-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+  }
+  .deliv-tag {
+    font-size: 11px;
+    padding: 3px 9px;
+    border-radius: 20px;
+    background: var(--bg3);
+    color: var(--text2);
+    border: 1px solid var(--border);
+    font-weight: 500;
+  }
+  .deliv-cta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-top: auto;
+    padding-top: 4px;
+    transition: gap 0.15s;
+  }
+  .deliv-card:hover .deliv-cta { gap: 10px; }
+  .deliv-cta i { font-size: 14px; }
+
+  /* per-card color themes */
+  .c-blue   .deliv-icon { background: var(--blue-bg);   color: var(--blue);   border: 1px solid var(--blue-b); }
+  .c-blue   .deliv-cta  { color: var(--blue); }
+  .c-blue:hover         { border-color: var(--blue-b); }
+
+  .c-purple .deliv-icon { background: var(--purple-bg); color: var(--purple); border: 1px solid var(--purple-b); }
+  .c-purple .deliv-cta  { color: var(--purple); }
+  .c-purple:hover       { border-color: var(--purple-b); }
+
+  .c-amber  .deliv-icon { background: var(--amber-bg);  color: var(--amber);  border: 1px solid var(--amber-b); }
+  .c-amber  .deliv-cta  { color: var(--amber); }
+  .c-amber:hover        { border-color: var(--amber-b); }
+
+  .c-teal   .deliv-icon { background: var(--teal-bg);   color: var(--teal);   border: 1px solid var(--teal-b); }
+  .c-teal   .deliv-cta  { color: var(--teal); }
+  .c-teal:hover         { border-color: var(--teal-b); }
+
+  .c-coral  .deliv-icon { background: var(--coral-bg);  color: var(--coral);  border: 1px solid var(--coral-b); }
+  .c-coral  .deliv-cta  { color: var(--coral); }
+  .c-coral:hover        { border-color: var(--coral-b); }
+
+  .c-pink   .deliv-icon { background: var(--pink-bg);   color: var(--pink);   border: 1px solid var(--pink-b); }
+  .c-pink   .deliv-cta  { color: var(--pink); }
+  .c-pink:hover         { border-color: var(--pink-b); }
+
+  /* ══════════════════════ HIGHLIGHTS ══════════════════════ */
+  .section-alt { background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+
+  .highlights-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .highlight-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    transition: border-color 0.2s;
+  }
+  .highlight-card:hover { border-color: var(--border2); }
+  .highlight-icon {
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    margin-bottom: 14px;
+  }
+  .highlight-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    letter-spacing: -0.01em;
+  }
+  .highlight-desc {
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.55;
+  }
+
+  .h-1 .highlight-icon { background: var(--coral-bg); color: var(--coral); }
+  .h-2 .highlight-icon { background: var(--amber-bg); color: var(--amber); }
+  .h-3 .highlight-icon { background: var(--pink-bg);  color: var(--pink); }
+  .h-4 .highlight-icon { background: var(--teal-bg);  color: var(--teal); }
+  .h-5 .highlight-icon { background: var(--purple-bg);color: var(--purple); }
+  .h-6 .highlight-icon { background: var(--blue-bg);  color: var(--blue); }
+
+  /* ══════════════════════ AUTHOR ══════════════════════ */
+  .author-section {
+    padding: 80px 32px;
+  }
+  .author-card {
+    max-width: 720px;
+    margin: 0 auto;
+    background: linear-gradient(135deg, var(--bg2) 0%, var(--bg3) 100%);
+    border: 1px solid var(--border2);
+    border-radius: 20px;
+    padding: 40px;
+    display: flex;
+    gap: 28px;
+    align-items: center;
+  }
+  .author-avatar {
+    width: 88px; height: 88px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--blue), var(--pink));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 34px;
+    font-weight: 700;
+    color: var(--bg);
+    flex-shrink: 0;
+    letter-spacing: -0.02em;
+  }
+  .author-info { flex: 1; }
+  .author-name {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+  }
+  .author-role {
+    font-size: 14px;
+    color: var(--text2);
+    margin-bottom: 12px;
+  }
+  .author-links {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .author-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    padding: 5px 11px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    transition: all 0.15s;
+    font-weight: 500;
+  }
+  .author-link:hover {
+    color: var(--text);
+    background: rgba(255,255,255,0.08);
+    border-color: var(--border2);
+  }
+
+  /* ══════════════════════ CTA FINAL ══════════════════════ */
+  .cta-final {
+    padding: 100px 32px 80px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .cta-final::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 700px; height: 400px;
+    background: radial-gradient(ellipse at center, rgba(88, 166, 255, 0.10), transparent 60%);
+    pointer-events: none;
+  }
+  .cta-final-inner { position: relative; }
+  .cta-final-title {
+    font-size: clamp(32px, 4vw, 44px);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin-bottom: 16px;
+    line-height: 1.15;
+  }
+  .cta-final-sub {
+    font-size: 17px;
+    color: var(--text2);
+    max-width: 520px;
+    margin: 0 auto 32px;
+  }
+
+  /* ══════════════════════ FOOTER ══════════════════════ */
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 32px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text3);
+  }
+  .footer strong { color: var(--text2); }
+
+  /* ══════════════════════ RESPONSIVE ══════════════════════ */
+  @media (max-width: 840px) {
+    .nav { padding: 12px 20px; }
+    .nav-links { gap: 18px; }
+    .nav-link { display: none; }
+    .hero { padding: 64px 20px 60px; }
+    .stats-section, .section, .author-section, .cta-final { padding-left: 20px; padding-right: 20px; }
+    .stats-container { grid-template-columns: repeat(2, 1fr); }
+    .stat-cell { padding: 22px 14px; }
+    .stat-value { font-size: 32px; }
+    .deliv-grid { grid-template-columns: 1fr; }
+    .highlights-grid { grid-template-columns: 1fr; }
+    .author-card { flex-direction: column; text-align: center; padding: 28px; }
+    .hero-tech { justify-content: center; }
+    .hero-tech-label { width: 100%; text-align: center; margin-right: 0; margin-bottom: 4px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ NAV ═══════════════════ -->
+<nav class="nav">
+  <a href="#top" class="nav-brand">
+    <span class="nav-brand-icon"><i class="ti ti-bolt"></i></span>
+    <span>TicketStorm</span>
+  </a>
+  <div class="nav-links">
+    <a href="#entregables" class="nav-link">Entregables</a>
+    <a href="#destacados" class="nav-link">Destacados</a>
+    <a href="#autor" class="nav-link">Autor</a>
+    <a href="./docs/01_system_design_architecture.html" class="nav-cta">
+      <i class="ti ti-arrow-right"></i>
+      Ver arquitectura
+    </a>
+  </div>
+</nav>
+
+<!-- ═══════════════════ HERO ═══════════════════ -->
+<section class="hero" id="top">
+  <div class="hero-bg">
+    <div class="hero-grid-bg"></div>
+  </div>
+  <div class="hero-inner">
+    <div class="hero-badge">
+      <span class="hero-badge-dot"></span>
+      <span>Proyecto final · <strong>Bootcamp Arquitecturas Backend con Java</strong> · Código Facilito 2026</span>
+    </div>
+
+    <h1 class="hero-title">
+      Reservaciones a<br>
+      <span class="hero-title-accent">escala masiva.</span>
+    </h1>
+
+    <p class="hero-subtitle">
+      Arquitectura backend para venta de tickets diseñada para <strong>50M usuarios diarios</strong>,
+      picos de <strong>5M concurrentes</strong> y una restricción no-negociable: <strong>cero overbooking</strong>.
+    </p>
+
+    <div class="hero-cta-row">
+      <a href="#entregables" class="btn-primary">
+        <i class="ti ti-book"></i>
+        Explorar entregables
+      </a>
+      <a href="./docs/01_system_design_architecture.html" class="btn-secondary">
+        <i class="ti ti-sitemap"></i>
+        Ver System Design
+      </a>
+    </div>
+
+    <div class="hero-tech">
+      <span class="hero-tech-label">Stack</span>
+      <span class="hero-tech-pill tp-blue"><i class="ti ti-brand-java"></i> Java 21 + Loom</span>
+      <span class="hero-tech-pill tp-teal"><i class="ti ti-leaf"></i> Spring Boot 3</span>
+      <span class="hero-tech-pill tp-coral"><i class="ti ti-brand-kubernetes"></i> GKE + Istio</span>
+      <span class="hero-tech-pill tp-amber"><i class="ti ti-topology-star-3"></i> Kafka</span>
+      <span class="hero-tech-pill tp-pink"><i class="ti ti-brain"></i> Spring AI</span>
+      <span class="hero-tech-pill tp-purple"><i class="ti ti-chart-line"></i> Grafana</span>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ STATS ═══════════════════ -->
+<section class="stats-section">
+  <div class="stats-container">
+    <div class="stat-cell accent-blue">
+      <div class="stat-value">50M</div>
+      <div class="stat-label">Usuarios DAU</div>
+    </div>
+    <div class="stat-cell accent-coral">
+      <div class="stat-value">5M</div>
+      <div class="stat-label">Concurrentes</div>
+    </div>
+    <div class="stat-cell accent-pink">
+      <div class="stat-value">0</div>
+      <div class="stat-label">Overbooking</div>
+    </div>
+    <div class="stat-cell accent-teal">
+      <div class="stat-value">&lt;500ms</div>
+      <div class="stat-label">P99 Checkout</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ ENTREGABLES ═══════════════════ -->
+<section class="section" id="entregables">
+  <div class="section-inner">
+    <div class="section-header">
+      <div class="section-eyebrow">Documentación</div>
+      <h2 class="section-title">Los 6 entregables del proyecto</h2>
+      <p class="section-subtitle">
+        Cada documento es un HTML interactivo, navegable y auto-contenido.
+        Explorá el diseño completo del sistema.
+      </p>
+    </div>
+
+    <div class="deliv-grid">
+
+      <a href="./docs/01_system_design_architecture.html" class="deliv-card c-blue">
+        <div class="deliv-card-header">
+          <div class="deliv-icon"><i class="ti ti-sitemap"></i></div>
+          <div class="deliv-meta">
+            <div class="deliv-number">ENTREGABLE 01</div>
+            <div class="deliv-title">System Design Architecture</div>
+            <div class="deliv-subtitle">Diagrama de arquitectura completo</div>
+          </div>
+        </div>
+        <p class="deliv-desc">
+          Vista integral del sistema en 7 capas: clientes, edge (WAF, CDN, LB), API Gateway,
+          microservicios, Kafka event backbone, capa de datos, observabilidad e infraestructura GCP.
+          Cada componente clickeable con análisis de trade-offs.
+        </p>
+        <div class="deliv-tags">
+          <span class="deliv-tag">7 capas</span>
+          <span class="deliv-tag">interactivo</span>
+          <span class="deliv-tag">trade-offs</span>
+        </div>
+        <div class="deliv-cta">
+          Abrir diagrama
+          <i class="ti ti-arrow-right"></i>
+        </div>
+      </a>
+
+      <a href="./docs/02_ddd_bounded_contexts_context_map.html" class="deliv-card c-purple">
+        <div class="deliv-card-header">
+          <div class="deliv-icon"><i class="ti ti-hexagons"></i></div>
+          <div class="deliv-meta">
+            <div class="deliv-number">ENTREGABLE 02</div>
+            <div class="deliv-title">DDD Bounded Contexts</div>
+            <div class="deliv-subtitle">Descomposición Domain-Driven + Context Map</div>
+          </div>
+        </div>
+        <p class="deliv-desc">
+          Descomposición del dominio en 7 bounded contexts con agregados, entities, value objects,
+          domain events e invariantes. Incluye ubiquitous language, context map con relaciones U/D
+          y el flujo Saga coreografiado completo.
+        </p>
+        <div class="deliv-tags">
+          <span class="deliv-tag">4 tabs</span>
+          <span class="deliv-tag">Saga flow</span>
+          <span class="deliv-tag">ubiquitous language</span>
+        </div>
+        <div class="deliv-cta">
+          Explorar contextos
+          <i class="ti ti-arrow-right"></i>
+        </div>
+      </a>
+
+      <a href="./docs/03_data_model.html" class="deliv-card c-amber">
+        <div class="deliv-card-header">
+          <div class="deliv-icon"><i class="ti ti-database"></i></div>
+          <div class="deliv-meta">
+            <div class="deliv-number">ENTREGABLE 03</div>
+            <div class="deliv-title">Data Model</div>
+            <div class="deliv-subtitle">Schemas PostgreSQL, Redis, pgvector</div>
+          </div>
+        </div>
+        <p class="deliv-desc">
+          Modelo de datos completo por bounded context. Schemas PostgreSQL con constraints e índices,
+          estructuras Redis con patrones de acceso, Event Store schema, y tabla pgvector para
+          embeddings de Spring AI. Cada decisión justificada.
+        </p>
+        <div class="deliv-tags">
+          <span class="deliv-tag">7 tabs</span>
+          <span class="deliv-tag">Event Sourcing</span>
+          <span class="deliv-tag">polyglot persistence</span>
+        </div>
+        <div class="deliv-cta">
+          Ver schemas
+          <i class="ti ti-arrow-right"></i>
+        </div>
+      </a>
+
+      <a href="./docs/04_api_spec.html" class="deliv-card c-teal">
+        <div class="deliv-card-header">
+          <div class="deliv-icon"><i class="ti ti-api"></i></div>
+          <div class="deliv-meta">
+            <div class="deliv-number">ENTREGABLE 04</div>
+            <div class="deliv-title">API Specification</div>
+            <div class="deliv-subtitle">OpenAPI 3.0 · 11 endpoints core</div>
+          </div>
+        </div>
+        <p class="deliv-desc">
+          Especificación de los flujos core del sistema. Endpoints con headers, request/response schemas,
+          códigos de error, rate limits y notas de seguridad. Incluye WebSocket para actualizaciones
+          de fila virtual y flujos internos con las 3 capas anti-overbooking.
+        </p>
+        <div class="deliv-tags">
+          <span class="deliv-tag">OpenAPI 3.0</span>
+          <span class="deliv-tag">JWT · Idempotency</span>
+          <span class="deliv-tag">rate limits</span>
+        </div>
+        <div class="deliv-cta">
+          Explorar API
+          <i class="ti ti-arrow-right"></i>
+        </div>
+      </a>
+
+      <a href="./docs/05_tech_stack_tradeoffs.html" class="deliv-card c-pink">
+        <div class="deliv-card-header">
+          <div class="deliv-icon"><i class="ti ti-stack-3"></i></div>
+          <div class="deliv-meta">
+            <div class="deliv-number">ENTREGABLE 05</div>
+            <div class="deliv-title">Tech Stack & Trade-offs</div>
+            <div class="deliv-subtitle">Justificación arquitectónica completa</div>
+          </div>
+        </div>
+        <p class="deliv-desc">
+          Análisis de cada decisión: runtime, framework, persistencia, mensajería, infraestructura,
+          seguridad, observabilidad, AI y resiliencia. Alternativas consideradas, pros/contras y
+          trade-off explícito por componente.
+        </p>
+        <div class="deliv-tags">
+          <span class="deliv-tag">8 categorías</span>
+          <span class="deliv-tag">alternativas comparadas</span>
+          <span class="deliv-tag">trade-offs justificados</span>
+        </div>
+        <div class="deliv-cta">
+          Ver decisiones
+          <i class="ti ti-arrow-right"></i>
+        </div>
+      </a>
+
+      <a href="./docs/06_cuestionario_evaluacion.html" class="deliv-card c-coral">
+        <div class="deliv-card-header">
+          <div class="deliv-icon"><i class="ti ti-clipboard-check"></i></div>
+          <div class="deliv-meta">
+            <div class="deliv-number">ENTREGABLE 06</div>
+            <div class="deliv-title">Cuestionario de Evaluación</div>
+            <div class="deliv-subtitle">5 preguntas oficiales del bootcamp</div>
+          </div>
+        </div>
+        <p class="deliv-desc">
+          Respuestas técnicas a nivel Staff Engineer sobre las 5 preguntas del cuestionario:
+          anti-overbooking, resiliencia, concurrencia, llegada masiva de usuarios y análisis desde
+          la perspectiva del CAP Theorem.
+        </p>
+        <div class="deliv-tags">
+          <span class="deliv-tag">5 preguntas</span>
+          <span class="deliv-tag">CAP + PACELC</span>
+          <span class="deliv-tag">detalle Staff</span>
+        </div>
+        <div class="deliv-cta">
+          Leer respuestas
+          <i class="ti ti-arrow-right"></i>
+        </div>
+      </a>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ HIGHLIGHTS ═══════════════════ -->
+<section class="section section-alt" id="destacados">
+  <div class="section-inner">
+    <div class="section-header">
+      <div class="section-eyebrow" style="color: var(--pink);">Lo que hace único a este diseño</div>
+      <h2 class="section-title">Decisiones arquitectónicas destacadas</h2>
+      <p class="section-subtitle">
+        Seis puntos donde el diseño va más allá de lo obvio.
+      </p>
+    </div>
+
+    <div class="highlights-grid">
+      <div class="highlight-card h-1">
+        <div class="highlight-icon"><i class="ti ti-shield-lock"></i></div>
+        <div class="highlight-title">4 capas anti-overbooking</div>
+        <p class="highlight-desc">
+          Lua atómico en Redis, Redisson Redlock, SELECT FOR UPDATE y UNIQUE constraint sobre
+          Event Store. El overbooking es imposible por diseño, no por convención.
+        </p>
+      </div>
+      <div class="highlight-card h-2">
+        <div class="highlight-icon"><i class="ti ti-queue"></i></div>
+        <div class="highlight-title">Fila virtual para 5M</div>
+        <p class="highlight-desc">
+          Redis Sorted Set O(log N) + WebSocket streaming con Virtual Threads. El sistema crítico
+          nunca ve el spike completo. El usuario espera sin pollear.
+        </p>
+      </div>
+      <div class="highlight-card h-3">
+        <div class="highlight-icon"><i class="ti ti-brain"></i></div>
+        <div class="highlight-title">Spring AI arquitectónico</div>
+        <p class="highlight-desc">
+          Búsqueda semántica con pgvector, chatbot RAG con Gemini y fraud detection.
+          Integrado como componente justificado, no como gimmick.
+        </p>
+      </div>
+      <div class="highlight-card h-4">
+        <div class="highlight-icon"><i class="ti ti-arrows-shuffle"></i></div>
+        <div class="highlight-title">Saga coreografiado</div>
+        <p class="highlight-desc">
+          Consistencia distribuida sin orquestador central. Cada servicio reacciona a eventos Kafka.
+          Compensaciones automáticas si un paso falla.
+        </p>
+      </div>
+      <div class="highlight-card h-5">
+        <div class="highlight-icon"><i class="ti ti-database"></i></div>
+        <div class="highlight-title">Event Sourcing + CQRS</div>
+        <p class="highlight-desc">
+          Inventory y Reservation son event stores puros. Estado como proyección del log.
+          Audit trail completo y anti-corrupción de estado.
+        </p>
+      </div>
+      <div class="highlight-card h-6">
+        <div class="highlight-icon"><i class="ti ti-triangle"></i></div>
+        <div class="highlight-title">CAP híbrido por BC</div>
+        <p class="highlight-desc">
+          CP en Inventory, Reservation y Payment. AP en Catalog, Queue, Notification y AI.
+          La boundary CP/AP está en el momento de la reserva.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ AUTHOR ═══════════════════ -->
+<section class="author-section" id="autor">
+  <div class="section-header">
+    <div class="section-eyebrow" style="color: var(--teal);">Autor</div>
+    <h2 class="section-title">Sobre el proyecto</h2>
+  </div>
+  <div class="author-card">
+    <div class="author-avatar">MM</div>
+    <div class="author-info">
+      <div class="author-name">Matías Martínez</div>
+      <div class="author-role">SRE &amp; Backend Engineer · NFD S.A. · Paraguay</div>
+      <div class="author-links">
+        <span class="author-link"><i class="ti ti-brand-java"></i> Java 21</span>
+        <span class="author-link"><i class="ti ti-leaf"></i> Spring Boot</span>
+        <span class="author-link"><i class="ti ti-brand-google"></i> GCP</span>
+        <span class="author-link"><i class="ti ti-server-2"></i> OCI</span>
+        <span class="author-link"><i class="ti ti-brand-kubernetes"></i> Kubernetes</span>
+        <span class="author-link"><i class="ti ti-chart-line"></i> Grafana</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ CTA FINAL ═══════════════════ -->
+<section class="cta-final">
+  <div class="cta-final-inner">
+    <h2 class="cta-final-title">Empezá por el System Design</h2>
+    <p class="cta-final-sub">
+      La forma más rápida de entender el proyecto es explorar el diagrama de arquitectura completo.
+      Todo lo demás profundiza esta vista.
+    </p>
+    <div class="hero-cta-row" style="margin-bottom: 0;">
+      <a href="./docs/01_system_design_architecture.html" class="btn-primary">
+        <i class="ti ti-sitemap"></i>
+        Ver System Design
+      </a>
+      <a href="./docs/06_cuestionario_evaluacion.html" class="btn-secondary">
+        <i class="ti ti-clipboard-check"></i>
+        Leer cuestionario
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ FOOTER ═══════════════════ -->
+<footer class="footer">
+  <p>
+    <strong>TicketStorm</strong> — Proyecto final del Bootcamp Arquitecturas Backend a Gran Escala con Java ·
+    <strong>Código Facilito</strong> · 2026 · Diseñado por Matías Martínez
+  </p>
+</footer>
+
+</body>
+</html>

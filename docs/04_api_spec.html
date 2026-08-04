@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TicketStorm — API Spec</title>
+<link rel="stylesheet" href="https://unpkg.com/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<style>
+  :root {
+    --bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--bg4:#0a0e13;
+    --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.14);
+    --text:#e6edf3;--text2:#8b949e;--text3:#6e7681;
+    --blue:#58a6ff;--blue-bg:rgba(88,166,255,.08);--blue-b:rgba(88,166,255,.22);
+    --teal:#3fb950;--teal-bg:rgba(63,185,80,.08);--teal-b:rgba(63,185,80,.22);
+    --purple:#d2a8ff;--purple-bg:rgba(210,168,255,.08);--purple-b:rgba(210,168,255,.22);
+    --amber:#e3b341;--amber-bg:rgba(227,179,65,.08);--amber-b:rgba(227,179,65,.22);
+    --coral:#f78166;--coral-bg:rgba(247,129,102,.08);--coral-b:rgba(247,129,102,.22);
+    --pink:#f778ba;--pink-bg:rgba(247,120,186,.08);--pink-b:rgba(247,120,186,.22);
+    --red:#ff7b72;--red-bg:rgba(255,123,114,.08);--red-b:rgba(255,123,114,.22);
+    --green:#3fb950;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI',sans-serif;font-size:13px;line-height:1.5}
+
+  /* HEADER */
+  .header{padding:24px 32px 20px;border-bottom:1px solid var(--border)}
+  .tag{display:inline-flex;align-items:center;gap:6px;background:var(--teal-bg);border:1px solid var(--teal-b);color:var(--teal);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin-bottom:10px}
+  h1{font-size:20px;font-weight:700;color:var(--text);margin-bottom:5px}
+  .hdesc{color:var(--text2);font-size:12px;max-width:760px;line-height:1.6}
+  .version-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .vpill{font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;border:1px solid;display:inline-flex;align-items:center;gap:5px}
+
+  /* LAYOUT */
+  .layout{display:grid;grid-template-columns:240px 1fr;min-height:calc(100vh - 180px)}
+  .sidebar{border-right:1px solid var(--border);padding:16px 0;background:var(--bg2);position:sticky;top:0;height:fit-content;max-height:calc(100vh - 180px);overflow-y:auto}
+  .sidebar-section{padding:8px 16px 4px;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);margin-top:8px}
+  .sidebar-item{display:flex;align-items:center;gap:8px;padding:7px 16px;cursor:pointer;transition:background .12s;font-size:12px;color:var(--text2);border-left:2px solid transparent}
+  .sidebar-item:hover{background:var(--bg3);color:var(--text)}
+  .sidebar-item.active{background:rgba(88,166,255,.07);color:var(--blue);border-left-color:var(--blue)}
+  .method-badge{font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px;font-family:'SF Mono',monospace;min-width:40px;text-align:center;letter-spacing:.03em}
+  .GET   {background:rgba(63,185,80,.15); color:var(--teal)}
+  .POST  {background:rgba(88,166,255,.15);color:var(--blue)}
+  .PUT   {background:rgba(227,179,65,.15);color:var(--amber)}
+  .DELETE{background:rgba(255,123,114,.15);color:var(--red)}
+
+  /* MAIN */
+  .main{padding:24px 28px 40px;overflow:auto}
+
+  /* ENDPOINT CARD */
+  .ep-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;margin-bottom:20px;overflow:hidden}
+  .ep-header{padding:16px 20px;display:flex;align-items:flex-start;gap:12px;border-bottom:1px solid var(--border);cursor:pointer;user-select:none}
+  .ep-header:hover{background:var(--bg3)}
+  .ep-meta{flex:1}
+  .ep-path{font-family:'SF Mono','Fira Code',ui-monospace,monospace;font-size:13px;font-weight:600;color:var(--text)}
+  .ep-summary{font-size:12px;color:var(--text2);margin-top:3px}
+  .ep-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+  .ep-tag{font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;border:1px solid}
+  .ep-toggle{color:var(--text3);font-size:16px;margin-left:auto;transition:transform .2s;flex-shrink:0}
+  .ep-toggle.open{transform:rotate(180deg)}
+
+  .ep-body{display:none;padding:20px}
+  .ep-body.open{display:block}
+
+  /* SECTIONS INSIDE ENDPOINT */
+  .ep-section{margin-bottom:20px}
+  .ep-section:last-child{margin-bottom:0}
+  .ep-section-title{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+
+  /* PARAMS TABLE */
+  .params-table{width:100%;border-collapse:collapse}
+  .params-table th{background:var(--bg3);padding:7px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)}
+  .params-table td{padding:8px 12px;border-bottom:1px solid var(--border);font-size:11px;vertical-align:top}
+  .params-table tr:last-child td{border-bottom:none}
+  .params-table tr:hover td{background:var(--bg3)}
+  .p-name{font-family:'SF Mono',monospace;font-weight:600;color:var(--text);font-size:11px}
+  .p-type{font-family:'SF Mono',monospace;font-size:10px;color:var(--blue)}
+  .p-in{font-size:10px;padding:1px 6px;border-radius:4px}
+  .in-path  {background:rgba(210,168,255,.1);color:var(--purple)}
+  .in-query {background:rgba(63,185,80,.1); color:var(--teal)}
+  .in-header{background:rgba(227,179,65,.1);color:var(--amber)}
+  .p-req{font-size:9px;font-weight:700;padding:1px 6px;border-radius:10px}
+  .req-true {background:rgba(247,129,102,.1);color:var(--coral)}
+  .req-false{background:rgba(139,148,158,.1);color:var(--text3)}
+  .p-desc{font-size:11px;color:var(--text2)}
+
+  /* JSON BLOCKS */
+  .json-block{background:var(--bg4);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:10px}
+  .json-block-header{padding:8px 14px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .json-block-label{font-size:11px;font-weight:600;color:var(--text2);font-family:'SF Mono',monospace}
+  .json-block-status{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px}
+  .s200{background:rgba(63,185,80,.15);color:var(--teal)}
+  .s201{background:rgba(88,166,255,.15);color:var(--blue)}
+  .s202{background:rgba(210,168,255,.15);color:var(--purple)}
+  .s400{background:rgba(227,179,65,.15);color:var(--amber)}
+  .s401{background:rgba(247,129,102,.15);color:var(--coral)}
+  .s404{background:rgba(139,148,158,.15);color:var(--text3)}
+  .s409{background:rgba(255,123,114,.15);color:var(--red)}
+  .s429{background:rgba(247,120,186,.15);color:var(--pink)}
+  pre.json{padding:14px;overflow-x:auto;font-family:'SF Mono','Fira Code',ui-monospace,monospace;font-size:11px;line-height:1.7;color:var(--text2)}
+  .jk{color:#79c0ff}  /* keys */
+  .jv{color:#a5d6ff}  /* string values */
+  .jn{color:#f0883e}  /* numbers */
+  .jb{color:#d2a8ff}  /* booleans */
+  .jnull{color:#8b949e} /* null */
+  .jc{color:#6e7681;font-style:italic} /* comments */
+
+  /* FLOW DIAGRAMS */
+  .flow-steps{display:flex;flex-direction:column;gap:0}
+  .flow-step{display:flex;gap:12px;padding:10px 0}
+  .flow-step-left{display:flex;flex-direction:column;align-items:center;width:28px;flex-shrink:0}
+  .flow-step-num{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+  .flow-step-line{width:1px;flex:1;background:var(--border2);margin-top:4px}
+  .flow-step:last-child .flow-step-line{display:none}
+  .flow-step-content{flex:1;padding-bottom:4px}
+  .flow-step-title{font-size:12px;font-weight:700;color:var(--text);margin-bottom:3px}
+  .flow-step-desc{font-size:11px;color:var(--text2);line-height:1.6}
+  .flow-step-code{font-family:'SF Mono',monospace;font-size:10px;background:var(--bg3);color:var(--amber);padding:3px 8px;border-radius:4px;margin-top:5px;display:inline-block}
+
+  /* SECURITY SECTION */
+  .security-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .security-item{display:flex;align-items:center;gap:7px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:11px}
+  .security-icon{color:var(--amber)}
+
+  /* RESPONSES GRID */
+  .responses-list{display:flex;flex-direction:column;gap:10px}
+
+  /* RATE LIMIT NOTE */
+  .rl-note{background:rgba(247,120,186,.06);border:1px solid var(--pink-b);border-radius:8px;padding:10px 14px;font-size:11px;color:var(--text2);display:flex;gap:10px;align-items:flex-start}
+  .rl-note i{color:var(--pink);flex-shrink:0;margin-top:1px}
+
+  /* OVERVIEW TABLE */
+  .overview-table{width:100%;border-collapse:collapse;margin-bottom:24px}
+  .overview-table th{background:var(--bg3);padding:9px 14px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)}
+  .overview-table td{padding:10px 14px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle}
+  .overview-table tr:hover td{background:var(--bg3)}
+
+  footer{text-align:center;color:var(--text3);font-size:11px;padding:20px 32px;border-top:1px solid var(--border)}
+
+  @media(max-width:720px){.layout{grid-template-columns:1fr}.sidebar{position:static;max-height:none;border-right:none;border-bottom:1px solid var(--border)}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="tag"><i class="ti ti-api" aria-hidden="true"></i> Semana 2 — Entregable 2 de 2</div>
+  <h1>TicketStorm — API Specification</h1>
+  <p class="hdesc">Especificación OpenAPI 3.0 de los 4 flujos core del sistema. Incluye endpoints, métodos HTTP, headers de autenticación, request/response schemas con tipos, códigos de error, rate limits y notas de seguridad.</p>
+  <div class="version-row">
+    <span class="vpill" style="background:var(--teal-bg);border-color:var(--teal-b);color:var(--teal)"><i class="ti ti-tag" aria-hidden="true"></i> OpenAPI 3.0.3</span>
+    <span class="vpill" style="background:var(--blue-bg);border-color:var(--blue-b);color:var(--blue)"><i class="ti ti-code" aria-hidden="true"></i> REST + WebSocket</span>
+    <span class="vpill" style="background:var(--amber-bg);border-color:var(--amber-b);color:var(--amber)"><i class="ti ti-lock" aria-hidden="true"></i> JWT Bearer (Keycloak)</span>
+    <span class="vpill" style="background:var(--coral-bg);border-color:var(--coral-b);color:var(--coral)"><i class="ti ti-server" aria-hidden="true"></i> Base URL: api.ticketstorm.io/v1</span>
+  </div>
+</div>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-section">Overview</div>
+    <div class="sidebar-item active" onclick="showView('overview')"><i class="ti ti-layout-list" aria-hidden="true"></i> Resumen de endpoints</div>
+    <div class="sidebar-section">1. Search Events</div>
+    <div class="sidebar-item" onclick="showView('search')"><span class="method-badge GET">GET</span> /events</div>
+    <div class="sidebar-item" onclick="showView('event-detail')"><span class="method-badge GET">GET</span> /events/{id}</div>
+    <div class="sidebar-section">2. Virtual Queue</div>
+    <div class="sidebar-item" onclick="showView('queue-join')"><span class="method-badge POST">POST</span> /queue/join</div>
+    <div class="sidebar-item" onclick="showView('queue-status')"><span class="method-badge GET">GET</span> /queue/status</div>
+    <div class="sidebar-item" onclick="showView('queue-ws')"><span class="method-badge" style="background:rgba(210,168,255,.15);color:var(--purple)">WS</span> /ws/queue</div>
+    <div class="sidebar-section">3. Reserve Seats</div>
+    <div class="sidebar-item" onclick="showView('reserve')"><span class="method-badge POST">POST</span> /reservations</div>
+    <div class="sidebar-item" onclick="showView('reserve-get')"><span class="method-badge GET">GET</span> /reservations/{id}</div>
+    <div class="sidebar-section">4. Purchase</div>
+    <div class="sidebar-item" onclick="showView('purchase')"><span class="method-badge POST">POST</span> /payments</div>
+    <div class="sidebar-item" onclick="showView('purchase-status')"><span class="method-badge GET">GET</span> /payments/{id}</div>
+    <div class="sidebar-section">AI Discovery</div>
+    <div class="sidebar-item" onclick="showView('ai-search')"><span class="method-badge POST">POST</span> /ai/search</div>
+    <div class="sidebar-item" onclick="showView('ai-chat')"><span class="method-badge POST">POST</span> /ai/chat</div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- OVERVIEW -->
+    <div id="view-overview">
+      <table class="overview-table">
+        <thead><tr><th>Método</th><th>Path</th><th>Descripción</th><th>Auth</th><th>Rate Limit</th></tr></thead>
+        <tbody>
+          <tr><td><span class="method-badge GET">GET</span></td><td style="font-family:monospace;font-size:11px;color:var(--text)">/v1/events</td><td style="color:var(--text2)">Search/browse eventos con filtros, paginación y geo</td><td style="color:var(--text3)">Opcional</td><td style="color:var(--text3)">100/min por IP</td></tr>
+          <tr><td><span class="method-badge GET">GET</span></td><td style="font-family:monospace;font-size:11px;color:var(--text)">/v1/events/{eventId}</td><td style="color:var(--text2)">Detalle completo de un evento con disponibilidad</td><td style="color:var(--text3)">Opcional</td><td style="color:var(--text3)">200/min por IP</td></tr>
+          <tr><td><span class="method-badge POST">POST</span></td><td style="font-family:monospace;font-size:11px;color:var(--text)">/v1/queue/join</td><td style="color:var(--text2)">Unirse a la fila virtual de un evento</td><td style="color:var(--teal)">Requerida</td><td style="color:var(--text3)">5/min por user</td></tr>
+          <tr><td><span class="method-badge GET">GET</span></td><td style="font-family:monospace;font-size:11px;color:var(--text)">/v1/queue/status</td><td style="color:var(--text2)">Consultar posición actual en la fila</td><td style="color:var(--teal)">Requerida</td><td style="color:var(--text3)">30/min por user</td></tr>
+          <tr><td><span class="method-badge" style="background:rgba(210,168,255,.15);color:var(--purple)">WS</span></td><td style="font-family:monospace;font-size:11px;color:var(--text)">/ws/queue/{eventId}</td><td style="color:var(--text2)">Actualizaciones de posición en tiempo real</td><td style="color:var(--teal)">Requerida</td><td style="color:var(--text3)">1 conexión/user/evento</td></tr>
+          <tr><td><span class="method-badge POST">POST</span></td><td style="font-family:monospace;font-size:11px;color:var(--text)">/v1/reservations</td><td style="color:var(--text2)">Crear reserva temporal de asientos (10 min)</td><td style="color:var(--teal)">Requerida + AccessToken</td><td style="color:var(--text3)">10/min por user</td></tr>
+          <tr><td><span class="method-badge GET">GET</span></td><td style="font-family:monospace;font-size:11px;color:var(--text)">/v1/reservations/{id}</td><td style="color:var(--text2)">Estado y detalle de una reserva</td><td style="color:var(--teal)">Requerida</td><td style="color:var(--text3)">60/min por user</td></tr>
+          <tr><td><span class="method-badge POST">POST</span></td><td style="font-family:monospace;font-size:11px;color:var(--text)">/v1/payments</td><td style="color:var(--text2)">Procesar pago de una reserva activa</td><td style="color:var(--teal)">Requerida</td><td style="color:var(--text3)">5/min por user</td></tr>
+          <tr><td><span class="method-badge GET">GET</span></td><td style="font-family:monospace;font-size:11px;color:var(--text)">/v1/payments/{id}</td><td style="color:var(--text2)">Estado de un pago</td><td style="color:var(--teal)">Requerida</td><td style="color:var(--text3)">60/min por user</td></tr>
+          <tr><td><span class="method-badge POST">POST</span></td><td style="font-family:monospace;font-size:11px;color:var(--text)">/v1/ai/search</td><td style="color:var(--text2)">Búsqueda semántica de eventos con embeddings</td><td style="color:var(--text3)">Opcional</td><td style="color:var(--text3)">20/min por IP</td></tr>
+          <tr><td><span class="method-badge POST">POST</span></td><td style="font-family:monospace;font-size:11px;color:var(--text)">/v1/ai/chat</td><td style="color:var(--text2)">Chatbot RAG multi-turn para discovery de eventos</td><td style="color:var(--teal)">Requerida</td><td style="color:var(--text3)">30/min por user</td></tr>
+        </tbody>
+      </table>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px 20px">
+        <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Convenciones globales</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">
+          <div style="font-size:11px;color:var(--text2)"><strong style="color:var(--text)">Content-Type:</strong> application/json (todas las requests/responses)</div>
+          <div style="font-size:11px;color:var(--text2)"><strong style="color:var(--text)">Auth header:</strong> Authorization: Bearer &lt;JWT RS256 Keycloak&gt;</div>
+          <div style="font-size:11px;color:var(--text2)"><strong style="color:var(--text)">Paginación:</strong> cursor-based con ?cursor=&lt;opaque&gt;&limit=20</div>
+          <div style="font-size:11px;color:var(--text2)"><strong style="color:var(--text)">IDs:</strong> UUID v4 en todos los recursos</div>
+          <div style="font-size:11px;color:var(--text2)"><strong style="color:var(--text)">Timestamps:</strong> ISO 8601 UTC (2026-07-01T18:00:00Z)</div>
+          <div style="font-size:11px;color:var(--text2)"><strong style="color:var(--text)">Rate limit headers:</strong> X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset</div>
+          <div style="font-size:11px;color:var(--text2)"><strong style="color:var(--text)">Trace header:</strong> X-Trace-Id propagado en todas las responses (OpenTelemetry)</div>
+          <div style="font-size:11px;color:var(--text2)"><strong style="color:var(--text)">Versioning:</strong> URL-based /v1/. Breaking changes → /v2/</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── GET /events ─── -->
+    <div id="view-search" style="display:none">
+      <div class="ep-card">
+        <div class="ep-header" onclick="toggle(this)">
+          <span class="method-badge GET" style="font-size:11px;padding:4px 10px">GET</span>
+          <div class="ep-meta">
+            <div class="ep-path">/v1/events</div>
+            <div class="ep-summary">Buscar y listar eventos con filtros. Read-side desde Elasticsearch + Redis cache. AP — levemente eventual.</div>
+            <div class="ep-tags">
+              <span class="ep-tag" style="background:var(--blue-bg);border-color:var(--blue-b);color:var(--blue)">Event Catalog</span>
+              <span class="ep-tag" style="background:var(--teal-bg);border-color:var(--teal-b);color:var(--teal)">Elasticsearch</span>
+              <span class="ep-tag" style="background:var(--amber-bg);border-color:var(--amber-b);color:var(--amber)">Redis Cache</span>
+            </div>
+          </div>
+          <i class="ti ti-chevron-down ep-toggle open" aria-hidden="true"></i>
+        </div>
+        <div class="ep-body open">
+          <div class="ep-section">
+            <div class="ep-section-title">Query Parameters</div>
+            <table class="params-table">
+              <thead><tr><th>Nombre</th><th>Tipo</th><th>In</th><th>Requerido</th><th>Descripción</th></tr></thead>
+              <tbody>
+                <tr><td><span class="p-name">q</span></td><td><span class="p-type">string</span></td><td><span class="p-in in-query">query</span></td><td><span class="p-req req-false">opcional</span></td><td class="p-desc">Full-text search. Busca en nombre, descripción, artistas, venue.</td></tr>
+                <tr><td><span class="p-name">city</span></td><td><span class="p-type">string</span></td><td><span class="p-in in-query">query</span></td><td><span class="p-req req-false">opcional</span></td><td class="p-desc">Filtrar por ciudad. Ej: "Asuncion", "Buenos Aires"</td></tr>
+                <tr><td><span class="p-name">country</span></td><td><span class="p-type">string(ISO 3166-1 alpha-2)</span></td><td><span class="p-in in-query">query</span></td><td><span class="p-req req-false">opcional</span></td><td class="p-desc">Código de país. Ej: "PY", "AR", "MX"</td></tr>
+                <tr><td><span class="p-name">date_from</span></td><td><span class="p-type">string(ISO 8601)</span></td><td><span class="p-in in-query">query</span></td><td><span class="p-req req-false">opcional</span></td><td class="p-desc">Desde esta fecha. Ej: "2026-07-01T00:00:00Z"</td></tr>
+                <tr><td><span class="p-name">date_to</span></td><td><span class="p-type">string(ISO 8601)</span></td><td><span class="p-in in-query">query</span></td><td><span class="p-req req-false">opcional</span></td><td class="p-desc">Hasta esta fecha. Si se omite: próximos 6 meses.</td></tr>
+                <tr><td><span class="p-name">genre</span></td><td><span class="p-type">string[]</span></td><td><span class="p-in in-query">query</span></td><td><span class="p-req req-false">opcional</span></td><td class="p-desc">Filtrar por género musical. Multi-value: genre=rock&genre=pop</td></tr>
+                <tr><td><span class="p-name">price_max</span></td><td><span class="p-type">number(decimal)</span></td><td><span class="p-in in-query">query</span></td><td><span class="p-req req-false">opcional</span></td><td class="p-desc">Precio máximo de ticket en USD.</td></tr>
+                <tr><td><span class="p-name">has_tickets</span></td><td><span class="p-type">boolean</span></td><td><span class="p-in in-query">query</span></td><td><span class="p-req req-false">opcional</span></td><td class="p-desc">Si true, solo eventos con tickets disponibles.</td></tr>
+                <tr><td><span class="p-name">cursor</span></td><td><span class="p-type">string(opaque)</span></td><td><span class="p-in in-query">query</span></td><td><span class="p-req req-false">opcional</span></td><td class="p-desc">Cursor de paginación del response anterior.</td></tr>
+                <tr><td><span class="p-name">limit</span></td><td><span class="p-type">integer [1-50]</span></td><td><span class="p-in in-query">query</span></td><td><span class="p-req req-false">opcional</span></td><td class="p-desc">Resultados por página. Default: 20. Max: 50.</td></tr>
+                <tr><td><span class="p-name">sort</span></td><td><span class="p-type">enum</span></td><td><span class="p-in in-query">query</span></td><td><span class="p-req req-false">opcional</span></td><td class="p-desc">date_asc | date_desc | popularity | price_asc. Default: date_asc</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="ep-section">
+            <div class="ep-section-title">Response 200 — OK</div>
+            <div class="json-block">
+              <div class="json-block-header"><span class="json-block-label">GET /v1/events?q=taylor&city=Asuncion&limit=2</span><span class="json-block-status s200">200 OK</span></div>
+              <pre class="json">{
+  <span class="jk">"data"</span>: [
+    {
+      <span class="jk">"id"</span>: <span class="jv">"evt_01j2k8p..."</span>,
+      <span class="jk">"name"</span>: <span class="jv">"Taylor Swift — The Eras Tour Paraguay"</span>,
+      <span class="jk">"slug"</span>: <span class="jv">"taylor-swift-eras-tour-paraguay-2026"</span>,
+      <span class="jk">"event_date"</span>: <span class="jv">"2026-11-15T20:00:00Z"</span>,
+      <span class="jk">"sale_opens_at"</span>: <span class="jv">"2026-07-01T14:00:00Z"</span>,
+      <span class="jk">"status"</span>: <span class="jv">"PUBLISHED"</span>,
+      <span class="jk">"venue"</span>: {
+        <span class="jk">"id"</span>: <span class="jv">"venue_01..."</span>,
+        <span class="jk">"name"</span>: <span class="jv">"Estadio Defensores del Chaco"</span>,
+        <span class="jk">"city"</span>: <span class="jv">"Asuncion"</span>,
+        <span class="jk">"country"</span>: <span class="jv">"PY"</span>,
+        <span class="jk">"total_capacity"</span>: <span class="jn">36000</span>
+      },
+      <span class="jk">"artists"</span>: [
+        { <span class="jk">"name"</span>: <span class="jv">"Taylor Swift"</span>, <span class="jk">"is_headliner"</span>: <span class="jb">true</span> }
+      ],
+      <span class="jk">"categories"</span>: [
+        { <span class="jk">"name"</span>: <span class="jv">"VIP"</span>, <span class="jk">"price"</span>: <span class="jn">450.00</span>, <span class="jk">"currency"</span>: <span class="jv">"USD"</span>, <span class="jk">"available"</span>: <span class="jn">1240</span> },
+        { <span class="jk">"name"</span>: <span class="jv">"Campo"</span>, <span class="jk">"price"</span>: <span class="jn">120.00</span>, <span class="jk">"currency"</span>: <span class="jv">"USD"</span>, <span class="jk">"available"</span>: <span class="jn">8500</span> }
+      ],
+      <span class="jk">"image_url"</span>: <span class="jv">"https://cdn.ticketstorm.io/events/evt_01j2k8p.jpg"</span>
+    }
+  ],
+  <span class="jk">"pagination"</span>: {
+    <span class="jk">"cursor"</span>: <span class="jv">"eyJsYXN0X2lkIjoiZXZ0XzAxajJr..."</span>,  <span class="jc">// opaque base64</span>
+    <span class="jk">"has_more"</span>: <span class="jb">true</span>,
+    <span class="jk">"total_count"</span>: <span class="jn">47</span>
+  },
+  <span class="jk">"meta"</span>: {
+    <span class="jk">"trace_id"</span>: <span class="jv">"4bf92f3577b34da6a3ce929d0e0e4736"</span>,
+    <span class="jk">"latency_ms"</span>: <span class="jn">38</span>,
+    <span class="jk">"source"</span>: <span class="jv">"cache"</span>  <span class="jc">// "cache" | "elasticsearch" | "db"</span>
+  }
+}</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── POST /queue/join ─── -->
+    <div id="view-queue-join" style="display:none">
+      <div class="ep-card">
+        <div class="ep-header" onclick="toggle(this)">
+          <span class="method-badge POST" style="font-size:11px;padding:4px 10px">POST</span>
+          <div class="ep-meta">
+            <div class="ep-path">/v1/queue/join</div>
+            <div class="ep-summary">Unirse a la fila virtual de un evento. El usuario recibe su posición y queda en espera. Notificación WebSocket cuando es su turno.</div>
+            <div class="ep-tags">
+              <span class="ep-tag" style="background:var(--coral-bg);border-color:var(--coral-b);color:var(--coral)">Virtual Queue BC</span>
+              <span class="ep-tag" style="background:var(--amber-bg);border-color:var(--amber-b);color:var(--amber)">Redis ZADD</span>
+            </div>
+          </div>
+          <i class="ti ti-chevron-down ep-toggle open" aria-hidden="true"></i>
+        </div>
+        <div class="ep-body open">
+          <div class="ep-section">
+            <div class="ep-section-title">Security</div>
+            <div class="security-row">
+              <div class="security-item"><i class="ti ti-lock security-icon" aria-hidden="true"></i><span>JWT Bearer (Keycloak) — requerido</span></div>
+              <div class="security-item"><i class="ti ti-gauge security-icon" aria-hidden="true"></i><span>Rate limit: 5 req/min por userId</span></div>
+            </div>
+          </div>
+          <div class="ep-section">
+            <div class="ep-section-title">Request Body</div>
+            <div class="json-block">
+              <div class="json-block-header"><span class="json-block-label">POST /v1/queue/join</span></div>
+              <pre class="json">{
+  <span class="jk">"event_id"</span>: <span class="jv">"evt_01j2k8p..."</span>  <span class="jc">// required — UUID del evento</span>
+}</pre>
+            </div>
+          </div>
+          <div class="ep-section">
+            <div class="ep-section-title">Flujo interno</div>
+            <div class="flow-steps">
+              <div class="flow-step">
+                <div class="flow-step-left"><div class="flow-step-num" style="background:var(--coral-bg);color:var(--coral)">1</div><div class="flow-step-line"></div></div>
+                <div class="flow-step-content"><div class="flow-step-title">Verificar estado del evento</div><div class="flow-step-desc">Catalog BC confirma que event.status = PUBLISHED y sale_opens_at ≤ NOW().</div></div>
+              </div>
+              <div class="flow-step">
+                <div class="flow-step-left"><div class="flow-step-num" style="background:var(--coral-bg);color:var(--coral)">2</div><div class="flow-step-line"></div></div>
+                <div class="flow-step-content"><div class="flow-step-title">Verificar que usuario no está ya en fila</div><div class="flow-step-desc">ZSCORE para verificar existencia. Si ya existe, retornar 409.</div><div class="flow-step-code">ZSCORE queue:{eventId} {userId}</div></div>
+              </div>
+              <div class="flow-step">
+                <div class="flow-step-left"><div class="flow-step-num" style="background:var(--coral-bg);color:var(--coral)">3</div><div class="flow-step-line"></div></div>
+                <div class="flow-step-content"><div class="flow-step-title">ZADD atómico con timestamp</div><div class="flow-step-desc">Score = Unix timestamp en microsegundos. NX flag: no sobreescribir si ya existe.</div><div class="flow-step-code">ZADD queue:{eventId} NX {timestamp_us} {userId}</div></div>
+              </div>
+              <div class="flow-step">
+                <div class="flow-step-left"><div class="flow-step-num" style="background:var(--coral-bg);color:var(--coral)">4</div></div>
+                <div class="flow-step-content"><div class="flow-step-title">Retornar posición y conectar WebSocket</div><div class="flow-step-desc">ZRANK para posición actual. Response incluye URL del WebSocket para actualizaciones en tiempo real.</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="ep-section">
+            <div class="ep-section-title">Responses</div>
+            <div class="responses-list">
+              <div class="json-block">
+                <div class="json-block-header"><span class="json-block-label">Éxito — usuario en fila</span><span class="json-block-status s201">201 Created</span></div>
+                <pre class="json">{
+  <span class="jk">"queue_entry_id"</span>: <span class="jv">"qe_01j2..."</span>,
+  <span class="jk">"event_id"</span>: <span class="jv">"evt_01j2k8p..."</span>,
+  <span class="jk">"position"</span>: <span class="jn">48293</span>,         <span class="jc">// posición actual (1-based)</span>
+  <span class="jk">"total_in_queue"</span>: <span class="jn">4830291</span>,   <span class="jc">// total de usuarios en fila</span>
+  <span class="jk">"estimated_wait_minutes"</span>: <span class="jn">18</span>,  <span class="jc">// estimación — no garantía</span>
+  <span class="jk">"ws_url"</span>: <span class="jv">"wss://api.ticketstorm.io/ws/queue/evt_01j2k8p"</span>,
+  <span class="jk">"ws_token"</span>: <span class="jv">"eyJhbGci..."</span>,     <span class="jc">// token corto para autenticar WS</span>
+  <span class="jk">"joined_at"</span>: <span class="jv">"2026-07-01T14:00:03.142Z"</span>
+}</pre>
+              </div>
+              <div class="json-block">
+                <div class="json-block-header"><span class="json-block-label">Usuario ya en fila</span><span class="json-block-status s409">409 Conflict</span></div>
+                <pre class="json">{
+  <span class="jk">"error"</span>: <span class="jv">"ALREADY_IN_QUEUE"</span>,
+  <span class="jk">"message"</span>: <span class="jv">"User is already in the queue for this event"</span>,
+  <span class="jk">"position"</span>: <span class="jn">48293</span>,
+  <span class="jk">"ws_url"</span>: <span class="jv">"wss://api.ticketstorm.io/ws/queue/evt_01j2k8p"</span>
+}</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── POST /reservations ─── -->
+    <div id="view-reserve" style="display:none">
+      <div class="ep-card">
+        <div class="ep-header" onclick="toggle(this)">
+          <span class="method-badge POST" style="font-size:11px;padding:4px 10px">POST</span>
+          <div class="ep-meta">
+            <div class="ep-path">/v1/reservations</div>
+            <div class="ep-summary">Crear reserva temporal de asientos. Requiere AccessToken de la fila. 3 capas anti-overbooking. Reserva expira en 10 minutos.</div>
+            <div class="ep-tags">
+              <span class="ep-tag" style="background:var(--teal-bg);border-color:var(--teal-b);color:var(--teal)">Reservation BC</span>
+              <span class="ep-tag" style="background:var(--amber-bg);border-color:var(--amber-b);color:var(--amber)">Inventory BC</span>
+              <span class="ep-tag" style="background:var(--coral-bg);border-color:var(--coral-b);color:var(--coral)">CRÍTICO CP</span>
+            </div>
+          </div>
+          <i class="ti ti-chevron-down ep-toggle open" aria-hidden="true"></i>
+        </div>
+        <div class="ep-body open">
+          <div class="ep-section">
+            <div class="ep-section-title">Security</div>
+            <div class="security-row">
+              <div class="security-item"><i class="ti ti-lock security-icon" aria-hidden="true"></i><span>JWT Bearer (Keycloak)</span></div>
+              <div class="security-item"><i class="ti ti-ticket security-icon" aria-hidden="true"></i><span>Header X-Queue-Access-Token: &lt;AccessToken de fila&gt;</span></div>
+              <div class="security-item"><i class="ti ti-gauge security-icon" aria-hidden="true"></i><span>Rate limit: 10 req/min por userId</span></div>
+            </div>
+          </div>
+          <div class="ep-section">
+            <div class="ep-section-title">Request Headers</div>
+            <table class="params-table">
+              <thead><tr><th>Header</th><th>Tipo</th><th>Requerido</th><th>Descripción</th></tr></thead>
+              <tbody>
+                <tr><td><span class="p-name">Authorization</span></td><td><span class="p-type">string</span></td><td><span class="p-req req-true">requerido</span></td><td class="p-desc">Bearer &lt;JWT Keycloak&gt;</td></tr>
+                <tr><td><span class="p-name">X-Queue-Access-Token</span></td><td><span class="p-type">string</span></td><td><span class="p-req req-true">requerido</span></td><td class="p-desc">AccessToken JWT recibido cuando el usuario llegó al frente de la fila. TTL 15min.</td></tr>
+                <tr><td><span class="p-name">X-Idempotency-Key</span></td><td><span class="p-type">string(UUID)</span></td><td><span class="p-req req-false">recomendado</span></td><td class="p-desc">UUID único por intento. Si se omite, se genera en server. Para reintentos seguros.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="ep-section">
+            <div class="ep-section-title">Request Body</div>
+            <div class="json-block">
+              <div class="json-block-header"><span class="json-block-label">POST /v1/reservations</span></div>
+              <pre class="json">{
+  <span class="jk">"event_id"</span>: <span class="jv">"evt_01j2k8p..."</span>,         <span class="jc">// required</span>
+  <span class="jk">"items"</span>: [                                <span class="jc">// required — max 4 items</span>
+    {
+      <span class="jk">"seat_id"</span>: <span class="jv">"seat_A1_001"</span>,            <span class="jc">// Para asientos numerados</span>
+      <span class="jk">"category_id"</span>: <span class="jv">"cat_vip_..."</span>
+    },
+    {
+      <span class="jk">"category_id"</span>: <span class="jv">"cat_campo_..."</span>        <span class="jc">// Para entrada general — sin seat_id</span>
+    }
+  ]
+}</pre>
+            </div>
+          </div>
+          <div class="ep-section">
+            <div class="ep-section-title">Flujo interno — 3 capas anti-overbooking</div>
+            <div class="flow-steps">
+              <div class="flow-step">
+                <div class="flow-step-left"><div class="flow-step-num" style="background:var(--teal-bg);color:var(--teal)">1</div><div class="flow-step-line"></div></div>
+                <div class="flow-step-content"><div class="flow-step-title">Validar X-Queue-Access-Token</div><div class="flow-step-desc">Verificar firma RS256, TTL, que el eventId del token coincide con el request. Sin token válido → 401.</div></div>
+              </div>
+              <div class="flow-step">
+                <div class="flow-step-left"><div class="flow-step-num" style="background:var(--amber-bg);color:var(--amber)">2</div><div class="flow-step-line"></div></div>
+                <div class="flow-step-content"><div class="flow-step-title">Capa 1: Lua script atómico en Redis</div><div class="flow-step-desc">EVAL verifica bit=0 y setea bit=1 en una operación atómica. Si algún asiento ya está ocupado → 409.</div><div class="flow-step-code">EVAL lua_script 1 bitmap_key seatIndex</div></div>
+              </div>
+              <div class="flow-step">
+                <div class="flow-step-left"><div class="flow-step-num" style="background:var(--amber-bg);color:var(--amber)">3</div><div class="flow-step-line"></div></div>
+                <div class="flow-step-content"><div class="flow-step-title">Capa 2: Distributed Lock (Redlock)</div><div class="flow-step-desc">Adquirir Redisson Redlock para cada seat_id. TTL del lock: 5000ms. Si falla adquirir → 503.</div></div>
+              </div>
+              <div class="flow-step">
+                <div class="flow-step-left"><div class="flow-step-num" style="background:var(--amber-bg);color:var(--amber)">4</div><div class="flow-step-line"></div></div>
+                <div class="flow-step-content"><div class="flow-step-title">Capa 3: SELECT FOR UPDATE en PostgreSQL</div><div class="flow-step-desc">Pessimistic lock a nivel de DB antes de escribir el evento SeatReserved. UNIQUE constraint en (aggregate_id, version) como última guardia.</div></div>
+              </div>
+              <div class="flow-step">
+                <div class="flow-step-left"><div class="flow-step-num" style="background:var(--teal-bg);color:var(--teal)">5</div></div>
+                <div class="flow-step-content"><div class="flow-step-title">Crear ReservationCreated + Outbox atómico</div><div class="flow-step-desc">INSERT en reservation_events y outbox_events en la misma transacción. SET Redis TTL 600s para la reserva.</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="ep-section">
+            <div class="ep-section-title">Responses</div>
+            <div class="responses-list">
+              <div class="json-block">
+                <div class="json-block-header"><span class="json-block-label">Reserva creada</span><span class="json-block-status s201">201 Created</span></div>
+                <pre class="json">{
+  <span class="jk">"id"</span>: <span class="jv">"res_01j2..."</span>,
+  <span class="jk">"status"</span>: <span class="jv">"PENDING"</span>,
+  <span class="jk">"event_id"</span>: <span class="jv">"evt_01j2k8p..."</span>,
+  <span class="jk">"items"</span>: [
+    {
+      <span class="jk">"seat_id"</span>: <span class="jv">"seat_A1_001"</span>,
+      <span class="jk">"category_name"</span>: <span class="jv">"VIP"</span>,
+      <span class="jk">"section"</span>: <span class="jv">"A"</span>,
+      <span class="jk">"row"</span>: <span class="jv">"1"</span>,
+      <span class="jk">"seat_number"</span>: <span class="jn">1</span>,
+      <span class="jk">"price"</span>: <span class="jn">450.00</span>,
+      <span class="jk">"currency"</span>: <span class="jv">"USD"</span>
+    }
+  ],
+  <span class="jk">"total_amount"</span>: <span class="jn">450.00</span>,
+  <span class="jk">"currency"</span>: <span class="jv">"USD"</span>,
+  <span class="jk">"expires_at"</span>: <span class="jv">"2026-07-01T14:10:05Z"</span>,  <span class="jc">// created_at + 10 min</span>
+  <span class="jk">"expires_in_seconds"</span>: <span class="jn">600</span>,
+  <span class="jk">"idempotency_key"</span>: <span class="jv">"a3e4f5..."</span>,           <span class="jc">// para usar en POST /payments</span>
+  <span class="jk">"created_at"</span>: <span class="jv">"2026-07-01T14:00:05Z"</span>
+}</pre>
+              </div>
+              <div class="json-block">
+                <div class="json-block-header"><span class="json-block-label">Asiento ya reservado / overbooking prevenido</span><span class="json-block-status s409">409 Conflict</span></div>
+                <pre class="json">{
+  <span class="jk">"error"</span>: <span class="jv">"SEAT_UNAVAILABLE"</span>,
+  <span class="jk">"message"</span>: <span class="jv">"One or more requested seats are no longer available"</span>,
+  <span class="jk">"unavailable_seats"</span>: [<span class="jv">"seat_A1_001"</span>]
+}</pre>
+              </div>
+              <div class="json-block">
+                <div class="json-block-header"><span class="json-block-label">Token de fila inválido o expirado</span><span class="json-block-status s401">401 Unauthorized</span></div>
+                <pre class="json">{
+  <span class="jk">"error"</span>: <span class="jv">"INVALID_QUEUE_TOKEN"</span>,
+  <span class="jk">"message"</span>: <span class="jv">"Queue access token is expired or invalid. Rejoin the queue."</span>
+}</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── POST /payments ─── -->
+    <div id="view-purchase" style="display:none">
+      <div class="ep-card">
+        <div class="ep-header" onclick="toggle(this)">
+          <span class="method-badge POST" style="font-size:11px;padding:4px 10px">POST</span>
+          <div class="ep-meta">
+            <div class="ep-path">/v1/payments</div>
+            <div class="ep-summary">Procesar el pago de una reserva activa. Incluye fraud scoring, idempotency guard y circuit breaker hacia gateway externo. Dispara Saga compensatoria si falla.</div>
+            <div class="ep-tags">
+              <span class="ep-tag" style="background:var(--teal-bg);border-color:var(--teal-b);color:var(--teal)">Payment BC</span>
+              <span class="ep-tag" style="background:var(--pink-bg);border-color:var(--pink-b);color:var(--pink)">Spring AI Fraud</span>
+              <span class="ep-tag" style="background:var(--purple-bg);border-color:var(--purple-b);color:var(--purple)">Idempotency</span>
+            </div>
+          </div>
+          <i class="ti ti-chevron-down ep-toggle open" aria-hidden="true"></i>
+        </div>
+        <div class="ep-body open">
+          <div class="ep-section">
+            <div class="ep-section-title">Security</div>
+            <div class="security-row">
+              <div class="security-item"><i class="ti ti-lock security-icon" aria-hidden="true"></i><span>JWT Bearer (Keycloak) — requerido</span></div>
+              <div class="security-item"><i class="ti ti-shield security-icon" aria-hidden="true"></i><span>MFA verificado en Keycloak para este scope</span></div>
+              <div class="security-item"><i class="ti ti-gauge security-icon" aria-hidden="true"></i><span>Rate limit: 5 req/min por userId</span></div>
+            </div>
+          </div>
+          <div class="ep-section">
+            <div class="ep-section-title">Request Headers</div>
+            <table class="params-table">
+              <thead><tr><th>Header</th><th>Tipo</th><th>Requerido</th><th>Descripción</th></tr></thead>
+              <tbody>
+                <tr><td><span class="p-name">Authorization</span></td><td><span class="p-type">string</span></td><td><span class="p-req req-true">requerido</span></td><td class="p-desc">Bearer &lt;JWT Keycloak con scope payments:write&gt;</td></tr>
+                <tr><td><span class="p-name">X-Idempotency-Key</span></td><td><span class="p-type">string(UUID)</span></td><td><span class="p-req req-true">requerido</span></td><td class="p-desc">Usar el idempotency_key devuelto por POST /reservations. Garantiza exactly-once.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="ep-section">
+            <div class="ep-section-title">Request Body</div>
+            <div class="json-block">
+              <div class="json-block-header"><span class="json-block-label">POST /v1/payments</span></div>
+              <pre class="json">{
+  <span class="jk">"reservation_id"</span>: <span class="jv">"res_01j2..."</span>,       <span class="jc">// required</span>
+  <span class="jk">"payment_method"</span>: {
+    <span class="jk">"type"</span>: <span class="jv">"CARD"</span>,                         <span class="jc">// CARD | BANK_TRANSFER | WALLET</span>
+    <span class="jk">"token"</span>: <span class="jv">"tok_stripe_..."</span>                <span class="jc">// tokenizado en frontend (Stripe.js/PayU SDK)</span>
+    <span class="jc">// NUNCA el PAN en texto plano — solo tokens del gateway</span>
+  },
+  <span class="jk">"billing_details"</span>: {
+    <span class="jk">"name"</span>: <span class="jv">"Matias Martinez"</span>,
+    <span class="jk">"email"</span>: <span class="jv">"matias@example.com"</span>,
+    <span class="jk">"country"</span>: <span class="jv">"PY"</span>
+  }
+}</pre>
+            </div>
+          </div>
+          <div class="ep-section">
+            <div class="ep-section-title">Flujo interno</div>
+            <div class="flow-steps">
+              <div class="flow-step">
+                <div class="flow-step-left"><div class="flow-step-num" style="background:var(--purple-bg);color:var(--purple)">1</div><div class="flow-step-line"></div></div>
+                <div class="flow-step-content"><div class="flow-step-title">Idempotency check</div><div class="flow-step-desc">Lookup de X-Idempotency-Key en tabla idempotency_keys. Si ya procesado → retornar respuesta cacheada inmediatamente.</div></div>
+              </div>
+              <div class="flow-step">
+                <div class="flow-step-left"><div class="flow-step-num" style="background:var(--pink-bg);color:var(--pink)">2</div><div class="flow-step-line"></div></div>
+                <div class="flow-step-content"><div class="flow-step-title">Fraud scoring (Spring AI)</div><div class="flow-step-desc">Llamada síncrona al AI Discovery Service → Vertex AI custom model. Features: velocity, IP reputation, device fingerprint, purchase history. Score &gt; 0.8 → rechazo inmediato.</div><div class="flow-step-code">POST /internal/fraud/score → {score: 0.0-1.0, decision: APPROVED|REJECTED|REVIEW}</div></div>
+              </div>
+              <div class="flow-step">
+                <div class="flow-step-left"><div class="flow-step-num" style="background:var(--teal-bg);color:var(--teal)">3</div><div class="flow-step-line"></div></div>
+                <div class="flow-step-content"><div class="flow-step-title">Verificar reserva activa</div><div class="flow-step-desc">Reserva debe existir, pertenecer al usuario autenticado, y status = PENDING. TTL Redis debe ser &gt; 0.</div></div>
+              </div>
+              <div class="flow-step">
+                <div class="flow-step-left"><div class="flow-step-num" style="background:var(--teal-bg);color:var(--teal)">4</div><div class="flow-step-line"></div></div>
+                <div class="flow-step-content"><div class="flow-step-title">Llamada a gateway externo (Resilience4j)</div><div class="flow-step-desc">Circuit breaker + retry exponencial (1s→2s→4s→8s, max 4 intentos). TimeLimiter: 5 segundos máximo. Fallback: encolar para procesamiento async.</div></div>
+              </div>
+              <div class="flow-step">
+                <div class="flow-step-left"><div class="flow-step-num" style="background:var(--teal-bg);color:var(--teal)">5</div></div>
+                <div class="flow-step-content"><div class="flow-step-title">Persistir + Outbox + emit Kafka</div><div class="flow-step-desc">INSERT en payments + idempotency_keys + payment_outbox en una transacción. Kafka worker publica PaymentProcessed/PaymentFailed. Saga continúa o compensa.</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="ep-section">
+            <div class="ep-section-title">Responses</div>
+            <div class="responses-list">
+              <div class="json-block">
+                <div class="json-block-header"><span class="json-block-label">Pago procesado exitosamente</span><span class="json-block-status s201">201 Created</span></div>
+                <pre class="json">{
+  <span class="jk">"payment_id"</span>: <span class="jv">"pay_01j2..."</span>,
+  <span class="jk">"status"</span>: <span class="jv">"SUCCESS"</span>,
+  <span class="jk">"reservation_id"</span>: <span class="jv">"res_01j2..."</span>,
+  <span class="jk">"amount"</span>: <span class="jn">450.00</span>,
+  <span class="jk">"currency"</span>: <span class="jv">"USD"</span>,
+  <span class="jk">"tickets"</span>: [
+    {
+      <span class="jk">"ticket_id"</span>: <span class="jv">"tkt_01j2..."</span>,
+      <span class="jk">"seat_id"</span>: <span class="jv">"seat_A1_001"</span>,
+      <span class="jk">"qr_code_url"</span>: <span class="jv">"https://cdn.ticketstorm.io/qr/tkt_01j2.png"</span>
+    }
+  ],
+  <span class="jk">"processed_at"</span>: <span class="jv">"2026-07-01T14:02:41Z"</span>,
+  <span class="jk">"fraud_score"</span>: <span class="jn">0.043</span>
+}</pre>
+              </div>
+              <div class="json-block">
+                <div class="json-block-header"><span class="json-block-label">Pago rechazado por fraude</span><span class="json-block-status s409">409 Conflict</span></div>
+                <pre class="json">{
+  <span class="jk">"error"</span>: <span class="jv">"FRAUD_REJECTED"</span>,
+  <span class="jk">"message"</span>: <span class="jv">"Payment declined due to suspicious activity"</span>,
+  <span class="jk">"fraud_score"</span>: <span class="jn">0.921</span>
+  <span class="jc">// Los asientos son liberados automáticamente via Saga compensatoria</span>
+}</pre>
+              </div>
+              <div class="json-block">
+                <div class="json-block-header"><span class="json-block-label">Gateway timeout / circuit breaker abierto</span><span class="json-block-status s202">202 Accepted</span></div>
+                <pre class="json">{
+  <span class="jk">"payment_id"</span>: <span class="jv">"pay_01j2..."</span>,
+  <span class="jk">"status"</span>: <span class="jv">"PROCESSING"</span>,
+  <span class="jk">"message"</span>: <span class="jv">"Payment is being processed. Check status at GET /v1/payments/{id}"</span>,
+  <span class="jk">"poll_url"</span>: <span class="jv">"/v1/payments/pay_01j2"</span>,
+  <span class="jk">"retry_after_seconds"</span>: <span class="jn">5</span>
+  <span class="jc">// La reserva se mantiene activa mientras el pago está PROCESSING</span>
+}</pre>
+              </div>
+            </div>
+          </div>
+          <div class="rl-note">
+            <i class="ti ti-info-circle" aria-hidden="true"></i>
+            <span><strong style="color:var(--pink)">Nota de seguridad PCI-DSS:</strong> El endpoint NUNCA recibe datos de tarjeta en texto plano. Solo acepta tokens del SDK del gateway (Stripe.js/PayU SDK tokeniza en el frontend antes de enviar al backend). El backend de TicketStorm nunca está en scope de PCI-DSS.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── POST /ai/search ─── -->
+    <div id="view-ai-search" style="display:none">
+      <div class="ep-card">
+        <div class="ep-header" onclick="toggle(this)">
+          <span class="method-badge POST" style="font-size:11px;padding:4px 10px">POST</span>
+          <div class="ep-meta">
+            <div class="ep-path">/v1/ai/search</div>
+            <div class="ep-summary">Búsqueda semántica de eventos usando embeddings (text-embedding-004) y pgvector. Entiende consultas en lenguaje natural. Spring AI VectorStore abstraction.</div>
+            <div class="ep-tags">
+              <span class="ep-tag" style="background:var(--pink-bg);border-color:var(--pink-b);color:var(--pink)">AI Discovery BC</span>
+              <span class="ep-tag" style="background:var(--purple-bg);border-color:var(--purple-b);color:var(--purple)">Spring AI</span>
+              <span class="ep-tag" style="background:var(--blue-bg);border-color:var(--blue-b);color:var(--blue)">Vertex AI Gemini</span>
+            </div>
+          </div>
+          <i class="ti ti-chevron-down ep-toggle open" aria-hidden="true"></i>
+        </div>
+        <div class="ep-body open">
+          <div class="ep-section">
+            <div class="ep-section-title">Request Body</div>
+            <div class="json-block">
+              <div class="json-block-header"><span class="json-block-label">POST /v1/ai/search</span></div>
+              <pre class="json">{
+  <span class="jk">"query"</span>: <span class="jv">"quiero ir a algo de rock en vivo este año en Paraguay"</span>,
+  <span class="jk">"filters"</span>: {                              <span class="jc">// pre-filtering antes del vector search</span>
+    <span class="jk">"country"</span>: <span class="jv">"PY"</span>,
+    <span class="jk">"date_from"</span>: <span class="jv">"2026-07-01"</span>,
+    <span class="jk">"status"</span>: <span class="jv">"PUBLISHED"</span>,
+    <span class="jk">"has_tickets"</span>: <span class="jb">true</span>
+  },
+  <span class="jk">"top_k"</span>: <span class="jn">5</span>,                              <span class="jc">// resultados a retornar (default: 5, max: 20)</span>
+  <span class="jk">"min_similarity"</span>: <span class="jn">0.7</span>                   <span class="jc">// umbral de similitud coseno (default: 0.6)</span>
+}</pre>
+            </div>
+          </div>
+          <div class="ep-section">
+            <div class="ep-section-title">Response 200</div>
+            <div class="json-block">
+              <div class="json-block-header"><span class="json-block-label">Resultados semánticos rankeados</span><span class="json-block-status s200">200 OK</span></div>
+              <pre class="json">{
+  <span class="jk">"results"</span>: [
+    {
+      <span class="jk">"event_id"</span>: <span class="jv">"evt_01j2..."</span>,
+      <span class="jk">"name"</span>: <span class="jv">"Rock al Parque Paraguay 2026"</span>,
+      <span class="jk">"similarity_score"</span>: <span class="jn">0.924</span>,              <span class="jc">// 1 - cosine distance</span>
+      <span class="jk">"event_date"</span>: <span class="jv">"2026-09-20T18:00:00Z"</span>,
+      <span class="jk">"venue_name"</span>: <span class="jv">"Parque de la Salud"</span>,
+      <span class="jk">"city"</span>: <span class="jv">"Asuncion"</span>,
+      <span class="jk">"price_from"</span>: <span class="jn">35.00</span>,
+      <span class="jk">"has_tickets"</span>: <span class="jb">true</span>
+    }
+  ],
+  <span class="jk">"query_embedding_latency_ms"</span>: <span class="jn">87</span>,        <span class="jc">// latencia de vectorización del query</span>
+  <span class="jk">"search_latency_ms"</span>: <span class="jn">12</span>                  <span class="jc">// latencia de HNSW search en pgvector</span>
+}</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── POST /ai/chat ─── -->
+    <div id="view-ai-chat" style="display:none">
+      <div class="ep-card">
+        <div class="ep-header" onclick="toggle(this)">
+          <span class="method-badge POST" style="font-size:11px;padding:4px 10px">POST</span>
+          <div class="ep-meta">
+            <div class="ep-path">/v1/ai/chat</div>
+            <div class="ep-summary">Chatbot conversacional multi-turn para discovery de eventos. RAG con top-5 eventos como contexto. Spring AI ChatClient + ChatMemory + QuestionAnswerAdvisor.</div>
+            <div class="ep-tags">
+              <span class="ep-tag" style="background:var(--pink-bg);border-color:var(--pink-b);color:var(--pink)">AI Discovery BC</span>
+              <span class="ep-tag" style="background:var(--purple-bg);border-color:var(--purple-b);color:var(--purple)">RAG + ChatMemory</span>
+            </div>
+          </div>
+          <i class="ti ti-chevron-down ep-toggle open" aria-hidden="true"></i>
+        </div>
+        <div class="ep-body open">
+          <div class="ep-section">
+            <div class="ep-section-title">Request Body</div>
+            <div class="json-block">
+              <div class="json-block-header"><span class="json-block-label">POST /v1/ai/chat</span></div>
+              <pre class="json">{
+  <span class="jk">"session_id"</span>: <span class="jv">"sess_01j2..."</span>,  <span class="jc">// null para iniciar nueva sesión</span>
+  <span class="jk">"message"</span>: <span class="jv">"Hay algo de Taylor Swift en Paraguay este año?"</span>,
+  <span class="jk">"user_context"</span>: {              <span class="jc">// opcional — personalización</span>
+    <span class="jk">"country"</span>: <span class="jv">"PY"</span>,
+    <span class="jk">"preferred_genres"</span>: [<span class="jv">"pop"</span>, <span class="jv">"rock"</span>]
+  }
+}</pre>
+            </div>
+          </div>
+          <div class="ep-section">
+            <div class="ep-section-title">Response 200</div>
+            <div class="json-block">
+              <div class="json-block-header"><span class="json-block-label">Respuesta del chatbot con contexto RAG</span><span class="json-block-status s200">200 OK</span></div>
+              <pre class="json">{
+  <span class="jk">"session_id"</span>: <span class="jv">"sess_01j2..."</span>,
+  <span class="jk">"response"</span>: <span class="jv">"¡Sí! Taylor Swift tiene confirmado el show 'The Eras Tour Paraguay' el 15 de noviembre de 2026 en el Estadio Defensores del Chaco. Las entradas van desde $120 (Campo) hasta $450 (VIP). La venta abre el 1 de julio a las 14:00hs. ¿Te gustaría que te diga cómo unirte a la fila?"</span>,
+  <span class="jk">"retrieved_events"</span>: [            <span class="jc">// eventos usados como contexto RAG</span>
+    { <span class="jk">"event_id"</span>: <span class="jv">"evt_01j2k8p"</span>, <span class="jk">"similarity"</span>: <span class="jn">0.961</span> }
+  ],
+  <span class="jk">"turn"</span>: <span class="jn">1</span>,
+  <span class="jk">"model"</span>: <span class="jv">"gemini-1.5-pro"</span>
+}</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DEFAULT HIDDEN VIEWS (queue-status, event-detail, reserve-get, purchase-status, queue-ws) -->
+    <div id="view-event-detail" style="display:none">
+      <div style="padding:20px;background:var(--bg2);border:1px solid var(--border);border-radius:14px;color:var(--text2);font-size:12px">
+        <strong style="color:var(--text)">GET /v1/events/{eventId}</strong> — Retorna el detalle completo de un evento incluyendo venue, artistas, categorías de ticket con disponibilidad en tiempo real (Redis HASH), y estado de venta. Misma estructura que los items de GET /v1/events pero con campos adicionales como sections del venue y timeline de la venta.
+      </div>
+    </div>
+    <div id="view-queue-status" style="display:none">
+      <div style="padding:20px;background:var(--bg2);border:1px solid var(--border);border-radius:14px;color:var(--text2);font-size:12px">
+        <strong style="color:var(--text)">GET /v1/queue/status?event_id={eventId}</strong> — Retorna la posición actual del usuario autenticado en la fila. Usa ZRANK en Redis. Response idéntico al body del WS push message: {position, total_in_queue, estimated_wait_minutes, access_token (si es su turno)}. Complementario al WebSocket — para polling como fallback.
+      </div>
+    </div>
+    <div id="view-queue-ws" style="display:none">
+      <div style="padding:20px;background:var(--bg2);border:1px solid var(--border);border-radius:14px;color:var(--text2);font-size:12px">
+        <strong style="color:var(--text)">WebSocket wss://api.ticketstorm.io/ws/queue/{eventId}</strong> — Conexión permanente autenticada con ws_token del /queue/join. Mensajes del servidor: POSITION_UPDATE {position, total_in_queue, estimated_wait_minutes} (cada 30s o cuando cambia significativamente) y ACCESS_GRANTED {access_token, expires_at} (cuando es el turno del usuario). Spring WebFlux Reactor con Virtual Threads — soporta 5M conexiones concurrentes.
+      </div>
+    </div>
+    <div id="view-reserve-get" style="display:none">
+      <div style="padding:20px;background:var(--bg2);border:1px solid var(--border);border-radius:14px;color:var(--text2);font-size:12px">
+        <strong style="color:var(--text)">GET /v1/reservations/{reservationId}</strong> — Retorna estado actual de la reserva. Lee desde reservation_projections. Incluye: status (PENDING|PURCHASED|EXPIRED|CANCELLED), items con detalles de asientos, total_amount, expires_at y expires_in_seconds calculado como max(0, expires_at - NOW()). Útil para mostrar contador de tiempo al usuario.
+      </div>
+    </div>
+    <div id="view-purchase-status" style="display:none">
+      <div style="padding:20px;background:var(--bg2);border:1px solid var(--border);border-radius:14px;color:var(--text2);font-size:12px">
+        <strong style="color:var(--text)">GET /v1/payments/{paymentId}</strong> — Polling del estado de un pago PROCESSING. Lee desde payments table. Una vez que status = SUCCESS retorna lista de tickets con QR codes. Si status = FAILED retorna failure_reason. Recomendado polling cada 2s con max 15 intentos.
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /layout -->
+
+<footer>TicketStorm · API Spec OpenAPI 3.0 v1.0 · Matías Martínez · Bootcamp Arquitecturas Backend Gran Escala · Código Facilito 2026</footer>
+
+<script>
+const views=['overview','search','event-detail','queue-join','queue-status','queue-ws','reserve','reserve-get','purchase','purchase-status','ai-search','ai-chat'];
+
+function showView(v){
+  views.forEach(id=>{
+    const el=document.getElementById('view-'+id);
+    if(el) el.style.display = id===v ? 'block' : 'none';
+  });
+  document.querySelectorAll('.sidebar-item').forEach(item=>{
+    item.classList.toggle('active', item.getAttribute('onclick')===`showView('${v}')`);
+  });
+  window.scrollTo(0,0);
+}
+
+function toggle(header){
+  const body=header.nextElementSibling;
+  const icon=header.querySelector('.ep-toggle');
+  body.classList.toggle('open');
+  icon.classList.toggle('open');
+}
+</script>
+</body>
+</html>

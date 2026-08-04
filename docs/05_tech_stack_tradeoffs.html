@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TicketStorm — Tech Stack & Trade-offs</title>
+<link rel="stylesheet" href="https://unpkg.com/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<style>
+  :root {
+    --bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--bg4:#0a0e13;
+    --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.14);
+    --text:#e6edf3;--text2:#8b949e;--text3:#6e7681;
+    --blue:#58a6ff;--blue-bg:rgba(88,166,255,.08);--blue-b:rgba(88,166,255,.22);
+    --teal:#3fb950;--teal-bg:rgba(63,185,80,.08);--teal-b:rgba(63,185,80,.22);
+    --purple:#d2a8ff;--purple-bg:rgba(210,168,255,.08);--purple-b:rgba(210,168,255,.22);
+    --amber:#e3b341;--amber-bg:rgba(227,179,65,.08);--amber-b:rgba(227,179,65,.22);
+    --coral:#f78166;--coral-bg:rgba(247,129,102,.08);--coral-b:rgba(247,129,102,.22);
+    --pink:#f778ba;--pink-bg:rgba(247,120,186,.08);--pink-b:rgba(247,120,186,.22);
+    --red:#ff7b72;--red-bg:rgba(255,123,114,.08);--red-b:rgba(255,123,114,.22);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI',sans-serif;font-size:13px;line-height:1.5}
+
+  .header{padding:24px 32px 20px;border-bottom:1px solid var(--border)}
+  .tag{display:inline-flex;align-items:center;gap:6px;background:var(--purple-bg);border:1px solid var(--purple-b);color:var(--purple);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin-bottom:10px}
+  h1{font-size:20px;font-weight:700;color:var(--text);margin-bottom:5px}
+  .hdesc{color:var(--text2);font-size:12px;max-width:760px;line-height:1.6}
+
+  .tabs{display:flex;flex-wrap:wrap;gap:0;padding:0 32px;border-bottom:1px solid var(--border);background:var(--bg2);overflow-x:auto}
+  .tab{padding:11px 18px;font-size:12px;font-weight:500;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;user-select:none;display:flex;align-items:center;gap:7px;white-space:nowrap}
+  .tab:hover{color:var(--text2)}
+  .tab.active{color:var(--text);border-bottom-color:var(--purple)}
+
+  .view{display:none;padding:24px 32px 40px}
+  .view.active{display:block}
+
+  /* DECISION CARD */
+  .dec-grid{display:grid;grid-template-columns:1fr;gap:18px}
+  .dec-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+  .dec-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:12px}
+  .dec-icon{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+  .dec-meta{flex:1}
+  .dec-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:3px}
+  .dec-sub{font-size:11px;color:var(--text3)}
+  .dec-badge{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 10px;border-radius:20px;flex-shrink:0;margin-top:4px}
+
+  .dec-body{padding:0}
+  .dec-section{padding:14px 18px;border-bottom:1px solid var(--border)}
+  .dec-section:last-child{border-bottom:none}
+  .dec-section-title{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+  .dec-section-title i{font-size:13px}
+  .dec-text{font-size:12px;color:var(--text2);line-height:1.7}
+  .dec-text strong{color:var(--text);font-weight:600}
+  .dec-text code{font-family:'SF Mono',monospace;font-size:11px;background:var(--bg3);color:var(--amber);padding:1px 6px;border-radius:4px}
+
+  /* COMPARISON TABLE */
+  .comp-table{width:100%;border-collapse:collapse;margin-top:8px}
+  .comp-table th{background:var(--bg3);padding:9px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)}
+  .comp-table td{padding:9px 12px;border-bottom:1px solid var(--border);font-size:11px;vertical-align:top;color:var(--text2)}
+  .comp-table tr:last-child td{border-bottom:none}
+  .comp-table .chosen{background:rgba(63,185,80,.04)}
+  .comp-table .chosen td:first-child{color:var(--teal);font-weight:600}
+  .pros{color:var(--teal)}
+  .cons{color:var(--coral)}
+
+  /* PROS CONS */
+  .pc-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px}
+  .pc-card{padding:10px 14px;border-radius:8px;border:1px solid}
+  .pc-pros{background:rgba(63,185,80,.04);border-color:var(--teal-b)}
+  .pc-cons{background:rgba(247,129,102,.04);border-color:var(--coral-b)}
+  .pc-title{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;display:flex;align-items:center;gap:5px}
+  .pc-pros .pc-title{color:var(--teal)}
+  .pc-cons .pc-title{color:var(--coral)}
+  .pc-list{list-style:none;padding:0}
+  .pc-list li{font-size:11px;color:var(--text2);padding:3px 0;display:flex;gap:7px}
+  .pc-pros .pc-list li::before{content:"+";color:var(--teal);font-weight:700;flex-shrink:0}
+  .pc-cons .pc-list li::before{content:"−";color:var(--coral);font-weight:700;flex-shrink:0}
+
+  /* CONTEXT BOX */
+  .context-box{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--purple);border-radius:0 10px 10px 0;padding:14px 18px;margin-bottom:24px;font-size:12px;color:var(--text2);line-height:1.7}
+  .context-box strong{color:var(--text)}
+
+  /* CATEGORY BADGES */
+  .b-runtime{background:var(--blue-bg);color:var(--blue)}
+  .b-data{background:var(--amber-bg);color:var(--amber)}
+  .b-infra{background:var(--coral-bg);color:var(--coral)}
+  .b-msg{background:var(--purple-bg);color:var(--purple)}
+  .b-ai{background:var(--pink-bg);color:var(--pink)}
+  .b-obs{background:var(--teal-bg);color:var(--teal)}
+  .b-sec{background:var(--red-bg);color:var(--red)}
+
+  footer{text-align:center;color:var(--text3);font-size:11px;padding:20px 32px;border-top:1px solid var(--border)}
+
+  @media(max-width:720px){.pc-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="tag"><i class="ti ti-stack-3" aria-hidden="true"></i> Semana 3 — Entregable 1 de 2</div>
+  <h1>TicketStorm — Tech Stack & Trade-off Analysis</h1>
+  <p class="hdesc">Justificación de cada decisión arquitectónica del proyecto. Para cada componente: contexto, decisión final, alternativas consideradas, pros/contras, y trade-off explícito. Este documento es la base de las preguntas técnicas en revisión.</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="sw('runtime')"><i class="ti ti-brand-java" aria-hidden="true"></i> Runtime & Framework</div>
+  <div class="tab" onclick="sw('data')"><i class="ti ti-database" aria-hidden="true"></i> Persistencia</div>
+  <div class="tab" onclick="sw('msg')"><i class="ti ti-topology-star-3" aria-hidden="true"></i> Mensajería</div>
+  <div class="tab" onclick="sw('infra')"><i class="ti ti-brand-kubernetes" aria-hidden="true"></i> Infraestructura</div>
+  <div class="tab" onclick="sw('sec')"><i class="ti ti-shield" aria-hidden="true"></i> Seguridad</div>
+  <div class="tab" onclick="sw('obs')"><i class="ti ti-chart-line" aria-hidden="true"></i> Observabilidad</div>
+  <div class="tab" onclick="sw('ai')"><i class="ti ti-brain" aria-hidden="true"></i> AI / ML</div>
+  <div class="tab" onclick="sw('res')"><i class="ti ti-shield-bolt" aria-hidden="true"></i> Resiliencia</div>
+</div>
+
+<!-- ═══════════════ RUNTIME ═══════════════ -->
+<div class="view active" id="view-runtime">
+  <div class="context-box">
+    <strong>Contexto general.</strong> El sistema debe soportar 50M DAU con picos de 5M usuarios concurrentes. El cuello de botella tradicional en Java es el modelo de un thread por request, costoso (~1MB stack por platform thread). La elección del runtime y framework determina la capacidad de absorber estos picos sin saturar el thread pool.
+  </div>
+
+  <div class="dec-grid">
+
+    <!-- Java 21 -->
+    <div class="dec-card">
+      <div class="dec-header">
+        <div class="dec-icon" style="background:var(--blue-bg);color:var(--blue)"><i class="ti ti-brand-java" aria-hidden="true"></i></div>
+        <div class="dec-meta">
+          <div class="dec-title">Java 21 LTS + Virtual Threads (Project Loom)</div>
+          <div class="dec-sub">Runtime principal del 100% de los microservicios</div>
+        </div>
+        <span class="dec-badge b-runtime">Runtime</span>
+      </div>
+      <div class="dec-body">
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-bulb" aria-hidden="true"></i>Decisión</div>
+          <p class="dec-text">Java 21 LTS sobre Virtual Threads para todos los servicios I/O-bound. <strong>Reemplaza el modelo reactivo (WebFlux) en la mayoría de servicios</strong>, manteniendo código imperativo simple sin sacrificar concurrencia masiva.</p>
+        </div>
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-scale" aria-hidden="true"></i>Trade-off analysis</div>
+          <table class="comp-table">
+            <thead><tr><th>Opción</th><th>Pros</th><th>Cons</th></tr></thead>
+            <tbody>
+              <tr class="chosen">
+                <td>Java 21 + Virtual Threads ✓</td>
+                <td class="pros">~1KB por VT vs ~1MB platform thread. 5M conexiones viables. Código blocking simple.</td>
+                <td class="cons">Synchronized blocks "pinnean" el carrier thread. ThreadLocal usage es costoso.</td>
+              </tr>
+              <tr>
+                <td>Java 17 + WebFlux reactivo</td>
+                <td class="pros">Backpressure nativo. Reactor maduro. Streaming-first.</td>
+                <td class="cons">Curva de aprendizaje alta. Debugging complejo. Stack traces ilegibles.</td>
+              </tr>
+              <tr>
+                <td>Kotlin Coroutines</td>
+                <td class="pros">Coroutines suspend muy ergonómicas. Integración Spring buena.</td>
+                <td class="cons">Equipo NFD S.A. ya domina Java. Cambio de lenguaje no justificado.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-checkbox" aria-hidden="true"></i>Justificación final</div>
+          <p class="dec-text"><strong>Excepción.</strong> El <strong>Virtual Queue Service mantiene WebFlux</strong> porque el caso de uso (5M WebSocket streams con backpressure de notificaciones) sí justifica el modelo reactivo: los Virtual Threads son excelentes para blocking I/O, pero WebFlux es superior cuando se necesita componer streams con backpressure explícito. Para el resto (Catalog, Inventory, Reservation, Payment, Notification), Virtual Threads gana por simplicidad sin perder throughput.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Spring Boot 3.x -->
+    <div class="dec-card">
+      <div class="dec-header">
+        <div class="dec-icon" style="background:var(--teal-bg);color:var(--teal)"><i class="ti ti-leaf" aria-hidden="true"></i></div>
+        <div class="dec-meta">
+          <div class="dec-title">Spring Boot 3.x</div>
+          <div class="dec-sub">Framework de aplicación con starters para todo el stack</div>
+        </div>
+        <span class="dec-badge b-runtime">Framework</span>
+      </div>
+      <div class="dec-body">
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-bulb" aria-hidden="true"></i>Decisión</div>
+          <p class="dec-text">Spring Boot 3.x con <code>spring.threads.virtual.enabled=true</code>. Auto-configuración de Virtual Threads para Tomcat connector, @Async, y task executors. Stack maduro alineado con el ecosistema NFD S.A.</p>
+        </div>
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-scale" aria-hidden="true"></i>Trade-off vs alternativas</div>
+          <div class="pc-grid">
+            <div class="pc-card pc-pros">
+              <div class="pc-title">A favor de Spring Boot 3</div>
+              <ul class="pc-list">
+                <li>Ecosistema maduro: Cloud Gateway, Security, Data, AI, Kafka, todos oficiales</li>
+                <li>Soporte nativo Virtual Threads + GraalVM native image</li>
+                <li>Spring AI 1.x con abstracciones VectorStore, ChatMemory, Advisors</li>
+                <li>Micrometer + OpenTelemetry integración automática</li>
+                <li>Equipo NFD S.A. ya productivo</li>
+              </ul>
+            </div>
+            <div class="pc-card pc-cons">
+              <div class="pc-title">Contras consideradas</div>
+              <ul class="pc-list">
+                <li>Startup time mayor que Quarkus/Micronaut (~5-8s vs 1-2s)</li>
+                <li>Memoria base mayor (~200MB vs 80MB Quarkus)</li>
+                <li>Magic excesivo: auto-config puede ocultar problemas</li>
+                <li>Mitigable con GraalVM native image (startup &lt; 100ms)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-checkbox" aria-hidden="true"></i>Trade-off explícito</div>
+          <p class="dec-text">Quarkus es objetivamente mejor en footprint y startup time, crítico para escalado serverless. <strong>Pero la productividad del equipo y el ecosistema (Spring AI, Spring Cloud Gateway, Spring Data) compensa</strong>. Para escalado masivo se planea migrar a GraalVM native image en Notification Service (workers efímeros donde startup importa).</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════ PERSISTENCIA ═══════════════ -->
+<div class="view" id="view-data">
+  <div class="context-box">
+    <strong>Estrategia polyglot persistence.</strong> Cada bounded context elige su DB según su patrón de acceso. PostgreSQL es la default para sistemas con Event Sourcing (transaccionalidad, JSONB para payloads). Redis cubre los casos de baja latencia y estructuras especializadas. Elasticsearch para búsqueda full-text. pgvector para AI.
+  </div>
+
+  <div class="dec-grid">
+
+    <!-- PostgreSQL -->
+    <div class="dec-card">
+      <div class="dec-header">
+        <div class="dec-icon" style="background:var(--blue-bg);color:var(--blue)"><i class="ti ti-database" aria-hidden="true"></i></div>
+        <div class="dec-meta">
+          <div class="dec-title">PostgreSQL 16 — Cloud SQL</div>
+          <div class="dec-sub">DB principal para 4 servicios: Catalog, Inventory, Reservation, Payment</div>
+        </div>
+        <span class="dec-badge b-data">SQL</span>
+      </div>
+      <div class="dec-body">
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-bulb" aria-hidden="true"></i>Decisión</div>
+          <p class="dec-text">PostgreSQL 16 en Cloud SQL con HA regional (primary + standby) por servicio. Cada microservicio tiene su propia DB lógica — schema-per-service, no shared database. JSONB para payloads de Event Sourcing. Particionamiento por <code>event_id</code> en tablas de alto volumen.</p>
+        </div>
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-scale" aria-hidden="true"></i>Comparativa vs alternativas</div>
+          <table class="comp-table">
+            <thead><tr><th>Opción</th><th>Pros</th><th>Cons</th></tr></thead>
+            <tbody>
+              <tr class="chosen">
+                <td>PostgreSQL Cloud SQL ✓</td>
+                <td class="pros">ACID full. JSONB+GIN. Foreign Data Wrappers. pgvector. Equipo lo domina.</td>
+                <td class="cons">Escalado vertical primero. Sharding manual si supera límites.</td>
+              </tr>
+              <tr>
+                <td>Cloud Spanner</td>
+                <td class="pros">Escalado horizontal automático. Consistencia global externa. SQL.</td>
+                <td class="cons">Costo ~10x. Latencia mayor. Sin extensiones (no pgvector).</td>
+              </tr>
+              <tr>
+                <td>MongoDB</td>
+                <td class="pros">Document store nativo. Sharding built-in.</td>
+                <td class="cons">Transacciones multi-doc complejas. Event Sourcing es más natural en SQL.</td>
+              </tr>
+              <tr>
+                <td>EventStoreDB</td>
+                <td class="pros">Diseñado específico para Event Sourcing. Subscriptions built-in.</td>
+                <td class="cons">Operacional separado. Equipo sin experiencia. Lock-in con vendor.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-checkbox" aria-hidden="true"></i>Trade-off explícito</div>
+          <p class="dec-text">PostgreSQL no escala horizontalmente sin sharding. <strong>Aceptable porque cada BC tiene su propia DB y los hot paths usan Redis</strong>. Si Inventory supera 100k writes/sec sostenidos, se considerará Citus (sharding) o migrar a Spanner. Por ahora cada DB maneja ~10-20k writes/sec con réplicas de lectura para queries.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Redis -->
+    <div class="dec-card">
+      <div class="dec-header">
+        <div class="dec-icon" style="background:var(--coral-bg);color:var(--coral)"><i class="ti ti-bolt" aria-hidden="true"></i></div>
+        <div class="dec-meta">
+          <div class="dec-title">Redis Cluster 7 — GCP Memorystore</div>
+          <div class="dec-sub">Cache, bitmaps de asientos, sorted sets de fila, distributed lock, rate limiting</div>
+        </div>
+        <span class="dec-badge b-data">In-memory</span>
+      </div>
+      <div class="dec-body">
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-bulb" aria-hidden="true"></i>Decisión</div>
+          <p class="dec-text">Redis Cluster 7 en Memorystore con 3 master + 3 replica nodes. AOF persistence + RDB snapshots cada 5 min. Estructuras especializadas por caso de uso: <code>BITMAP</code> para asientos (1 bit por asiento = O(1) check), <code>ZSET</code> para fila virtual, <code>STRING</code> con TTL para reservas temporales, Lua scripts para operaciones atómicas.</p>
+        </div>
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-scale" aria-hidden="true"></i>Trade-off vs Hazelcast/Memcached</div>
+          <div class="pc-grid">
+            <div class="pc-card pc-pros">
+              <div class="pc-title">Redis gana porque</div>
+              <ul class="pc-list">
+                <li>Estructuras: ZSET, BITMAP, HASH, STREAMS — no solo K/V</li>
+                <li>Lua scripts atómicos (clave para anti-overbooking)</li>
+                <li>Redlock algorithm bien documentado</li>
+                <li>Memorystore es managed: HA, backup, monitoring</li>
+                <li>Keyspace notifications para TTL events</li>
+              </ul>
+            </div>
+            <div class="pc-card pc-cons">
+              <div class="pc-title">Riesgos asumidos</div>
+              <ul class="pc-list">
+                <li>In-memory: si falla cluster completo, hay pérdida de queue state</li>
+                <li>Mitigado con AOF persistence + replica sync</li>
+                <li>PostgreSQL siempre es source of truth — Redis es speed layer</li>
+                <li>Costo de RAM significativo (50k asientos × 5k eventos = ~250MB)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Elasticsearch -->
+    <div class="dec-card">
+      <div class="dec-header">
+        <div class="dec-icon" style="background:var(--amber-bg);color:var(--amber)"><i class="ti ti-zoom" aria-hidden="true"></i></div>
+        <div class="dec-meta">
+          <div class="dec-title">Elasticsearch 8</div>
+          <div class="dec-sub">Búsqueda full-text + faceted + geo queries para Event Catalog (read-side)</div>
+        </div>
+        <span class="dec-badge b-data">Search</span>
+      </div>
+      <div class="dec-body">
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-bulb" aria-hidden="true"></i>Decisión</div>
+          <p class="dec-text">Elasticsearch 8 en GKE como read-side de Event Catalog. PostgreSQL es source of truth, ES se sincroniza vía Kafka (CDC con Debezium o eventos de dominio). Índices por fecha de evento para hot/cold data separation.</p>
+        </div>
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-scale" aria-hidden="true"></i>Trade-off vs PostgreSQL full-text + pgvector</div>
+          <p class="dec-text">Se evaluó usar solo PostgreSQL con <code>tsvector + GIN index</code> para full-text. <strong>Funciona para volúmenes bajos pero degrada con relevance scoring complejo y faceted search</strong>. Elasticsearch agrega operacional (cluster, mappings, replication), pero gana en: relevance scoring (BM25 customizable), faceted aggregations en milisegundos, autocomplete con edge n-grams, y geo queries con <code>geo_distance</code>. Para 50M DAU haciendo browse intensivo, ES paga su complejidad.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════ MENSAJERÍA ═══════════════ -->
+<div class="view" id="view-msg">
+  <div class="context-box">
+    <strong>El backbone event-driven es Kafka.</strong> Toda comunicación entre bounded contexts es asíncrona por default. Las únicas llamadas sincrónicas (gRPC/REST) son donde la respuesta es necesaria en el critical path: Queue → Inventory (check availability) y Payment → AI (fraud score).
+  </div>
+
+  <div class="dec-grid">
+
+    <!-- Kafka -->
+    <div class="dec-card">
+      <div class="dec-header">
+        <div class="dec-icon" style="background:var(--amber-bg);color:var(--amber)"><i class="ti ti-topology-star-3" aria-hidden="true"></i></div>
+        <div class="dec-meta">
+          <div class="dec-title">Apache Kafka — Confluent Platform en GKE</div>
+          <div class="dec-sub">Event backbone de todos los bounded contexts</div>
+        </div>
+        <span class="dec-badge b-msg">Mensajería</span>
+      </div>
+      <div class="dec-body">
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-bulb" aria-hidden="true"></i>Decisión</div>
+          <p class="dec-text">Kafka self-hosted en GKE con Strimzi operator. Particionamiento por <code>event_id</code> (garantiza ordenamiento de eventos del mismo evento). Replication factor 3, min.insync.replicas=2. Topics compactos para estado de inventario, time-based retention 7 días para el resto. Exactly-once semantics habilitado con transactional producers en Payment y Reservation.</p>
+        </div>
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-scale" aria-hidden="true"></i>Trade-off vs GCP Pub/Sub</div>
+          <table class="comp-table">
+            <thead><tr><th>Aspecto</th><th>Kafka</th><th>Pub/Sub</th></tr></thead>
+            <tbody>
+              <tr><td>Ordenamiento</td><td class="pros">Garantizado por partition key</td><td class="cons">Solo con ordering keys (con costo de throughput)</td></tr>
+              <tr><td>Throughput</td><td class="pros">Millones msg/seg con tuning</td><td class="pros">Auto-scaling sin tuning</td></tr>
+              <tr><td>Exactly-once</td><td class="pros">Transactional producers</td><td class="cons">At-least-once por default</td></tr>
+              <tr><td>Replay</td><td class="pros">Retention configurable. Consumer offsets manuales.</td><td class="cons">Limitado a 7 días, sin offset control fino</td></tr>
+              <tr><td>Operacional</td><td class="cons">Cluster a mantener (KRaft simplifica)</td><td class="pros">Serverless, zero ops</td></tr>
+              <tr><td>Costo</td><td>~$2k/mes infra fija</td><td>$0.04/MB ingresado — escala con uso</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-checkbox" aria-hidden="true"></i>Decisión híbrida</div>
+          <p class="dec-text"><strong>Kafka para inter-servicios</strong> (Reservation Saga, Inventory events, Payment outbox) donde el control fino de ordering, retention y replay es crítico. <strong>GCP Pub/Sub para fan-out masivo de notificaciones</strong> (apertura de venta: 5M push notifications) donde la simplicidad operacional y el auto-scaling justifican el costo variable. Kafka Streams se usa para agregaciones en tiempo real (tickets/segundo, revenue dashboard).</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- gRPC -->
+    <div class="dec-card">
+      <div class="dec-header">
+        <div class="dec-icon" style="background:var(--purple-bg);color:var(--purple)"><i class="ti ti-arrows-right-left" aria-hidden="true"></i></div>
+        <div class="dec-meta">
+          <div class="dec-title">gRPC para llamadas sincrónicas inter-servicios</div>
+          <div class="dec-sub">REST solo en bordes (clientes externos). gRPC internamente.</div>
+        </div>
+        <span class="dec-badge b-msg">RPC</span>
+      </div>
+      <div class="dec-body">
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-bulb" aria-hidden="true"></i>Decisión</div>
+          <p class="dec-text">REST/JSON en el API Gateway hacia clientes. gRPC con Protocol Buffers para todas las llamadas internas sincrónicas: Queue → Inventory (check availability), Payment → AI (fraud score), Reservation → Catalog (lookup event).</p>
+        </div>
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-scale" aria-hidden="true"></i>Trade-off</div>
+          <p class="dec-text">gRPC ofrece <strong>~30% menos latencia que JSON sobre HTTP/1.1</strong> (HTTP/2 multiplexing + binary serialization). Protobuf evita typos y desincronización de contratos. La desventaja es que requiere herramientas extra (protoc, plugins) y debugging menos amigable (no es human-readable). Trade-off aceptable internamente; los clientes externos siguen recibiendo JSON via Gateway transformer.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════ INFRAESTRUCTURA ═══════════════ -->
+<div class="view" id="view-infra">
+  <div class="context-box">
+    <strong>Multi-cloud strategy.</strong> GCP como cloud primario (familiaridad del equipo NFD S.A.). OCI como DR / fallback para componentes críticos. Avoid vendor lock-in usando estándares abiertos (Kubernetes, PostgreSQL, Kafka) — facilita migración entre clouds si es necesario.
+  </div>
+
+  <div class="dec-grid">
+
+    <div class="dec-card">
+      <div class="dec-header">
+        <div class="dec-icon" style="background:var(--coral-bg);color:var(--coral)"><i class="ti ti-brand-kubernetes" aria-hidden="true"></i></div>
+        <div class="dec-meta">
+          <div class="dec-title">GKE Autopilot — Multi-zone us-central1</div>
+          <div class="dec-sub">Orquestación de todos los microservicios</div>
+        </div>
+        <span class="dec-badge b-infra">Compute</span>
+      </div>
+      <div class="dec-body">
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-bulb" aria-hidden="true"></i>Decisión</div>
+          <p class="dec-text">GKE Autopilot multi-zone con HPA (CPU + custom metrics como <code>queue_size</code>). Workers no críticos (Notification, embeddings) en Spot nodes (~50% del costo). PodAntiAffinity para distribución entre zonas. Workload Identity (SA K8s = SA GCP, sin keys).</p>
+        </div>
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-scale" aria-hidden="true"></i>Trade-off vs GKE Standard / Cloud Run</div>
+          <p class="dec-text"><strong>Cloud Run</strong> sería más simple para servicios stateless, pero no soporta WebSocket largo de Virtual Queue ni gestión fina de recursos. <strong>GKE Standard</strong> da control total de node pools pero requiere expertise operacional para tuning. <strong>Autopilot</strong> es el sweet spot: GCP gestiona node pools, scaling, security patches; nosotros gestionamos workloads. Pierde el control de instance types específicos — aceptable porque <code>resources.requests</code> bien definidos garantizan que Autopilot asigna instances apropiadas.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="dec-card">
+      <div class="dec-header">
+        <div class="dec-icon" style="background:var(--blue-bg);color:var(--blue)"><i class="ti ti-network" aria-hidden="true"></i></div>
+        <div class="dec-meta">
+          <div class="dec-title">Istio Service Mesh</div>
+          <div class="dec-sub">mTLS, traffic management, observabilidad</div>
+        </div>
+        <span class="dec-badge b-infra">Mesh</span>
+      </div>
+      <div class="dec-body">
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-bulb" aria-hidden="true"></i>Decisión</div>
+          <p class="dec-text">Istio (Anthos Service Mesh managed) sobre GKE. mTLS automático entre servicios (zero-trust). VirtualService + DestinationRule para canary deployments (95/5 traffic split). Envoy sidecars inject distributed tracing headers W3C TraceContext automáticamente. OPA via ext_authz filter para policy-based authorization.</p>
+        </div>
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-scale" aria-hidden="true"></i>Trade-off vs Linkerd / sin mesh</div>
+          <p class="dec-text">Istio agrega <strong>~5-10ms latency por hop</strong> (sidecar Envoy). Memoria adicional ~50MB por pod. <strong>Linkerd es más liviano</strong> (~2ms, ~20MB) pero tiene menos features (sin OPA integration, sin traffic mirroring avanzado). Sin service mesh, tendríamos que implementar mTLS, retry, tracing manualmente en cada servicio — duplicación masiva. Para 7 microservicios la decisión es clara: <strong>Istio paga su overhead con features que el equipo no tendría que mantener</strong>.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="dec-card">
+      <div class="dec-header">
+        <div class="dec-icon" style="background:var(--teal-bg);color:var(--teal)"><i class="ti ti-arrows-split-2" aria-hidden="true"></i></div>
+        <div class="dec-meta">
+          <div class="dec-title">Spring Cloud Gateway</div>
+          <div class="dec-sub">API Gateway con rate limiting, JWT validation, routing</div>
+        </div>
+        <span class="dec-badge b-infra">Gateway</span>
+      </div>
+      <div class="dec-body">
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-bulb" aria-hidden="true"></i>Decisión</div>
+          <p class="dec-text">Spring Cloud Gateway corriendo en GKE. Rate limiting con Redis backend (sliding window por userId/eventId). JWT validation con Keycloak JWKS cache. Circuit breaker via Resilience4j filter. Path-based routing hacia servicios downstream.</p>
+        </div>
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-scale" aria-hidden="true"></i>Trade-off vs Kong / Apigee</div>
+          <div class="pc-grid">
+            <div class="pc-card pc-pros">
+              <div class="pc-title">Spring Cloud Gateway elegido por</div>
+              <ul class="pc-list">
+                <li>Stack 100% Java: equipo sabe debuggear</li>
+                <li>Configuration as code (versionado en Git)</li>
+                <li>WebFlux non-blocking: ideal para picos de tráfico</li>
+                <li>Integración nativa con Resilience4j, Micrometer, OAuth2</li>
+              </ul>
+            </div>
+            <div class="pc-card pc-cons">
+              <div class="pc-title">Sacrificado vs Kong/Apigee</div>
+              <ul class="pc-list">
+                <li>Sin admin UI: cambios via deploy</li>
+                <li>Plugin ecosystem menor (pero suficiente con filters custom)</li>
+                <li>Sin developer portal nativo (no es prioridad fase 1)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════ SEGURIDAD ═══════════════ -->
+<div class="view" id="view-sec">
+  <div class="context-box">
+    <strong>Defense in depth.</strong> Cinco capas: Cloud Armor (WAF/DDoS) → JWT Auth (Keycloak) → mTLS inter-servicio (Istio) → OPA policy (authorization) → Secrets Manager (credenciales). Compliance: PCI-DSS para flujo de pagos (tokenización en frontend, backend nunca ve PAN), GDPR/LGPD para datos personales.
+  </div>
+
+  <div class="dec-grid">
+
+    <div class="dec-card">
+      <div class="dec-header">
+        <div class="dec-icon" style="background:var(--red-bg);color:var(--red)"><i class="ti ti-key" aria-hidden="true"></i></div>
+        <div class="dec-meta">
+          <div class="dec-title">Keycloak (OIDC + OAuth2)</div>
+          <div class="dec-sub">Identity provider con JWT RS256, refresh tokens, MFA</div>
+        </div>
+        <span class="dec-badge b-sec">IdP</span>
+      </div>
+      <div class="dec-body">
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-bulb" aria-hidden="true"></i>Decisión</div>
+          <p class="dec-text">Keycloak self-hosted en GKE con PostgreSQL backend. JWT RS256 (asimétrico — los servicios validan con public key sin necesitar secret compartido). Refresh tokens rotativos. MFA obligatorio para scope <code>payments:write</code>. Federación con providers externos (Google, Apple ID) configurada.</p>
+        </div>
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-scale" aria-hidden="true"></i>Trade-off vs Auth0 / GCP Identity Platform</div>
+          <p class="dec-text">Auth0 y Identity Platform son SaaS, cero ops pero costo $0.023+ por MAU activo. Para 50M DAU = ~$1M/mes. <strong>Keycloak self-hosted: ~$200/mes infra + tiempo de operación</strong>. Trade-off claro: ahorro masivo a costo de gestión operacional. Mitigado con expertise SRE existente en NFD S.A. Backup automático cada 6h, DR en OCI.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="dec-card">
+      <div class="dec-header">
+        <div class="dec-icon" style="background:var(--amber-bg);color:var(--amber)"><i class="ti ti-file-check" aria-hidden="true"></i></div>
+        <div class="dec-meta">
+          <div class="dec-title">OPA (Open Policy Agent)</div>
+          <div class="dec-sub">Authorization declarativa via Rego policies</div>
+        </div>
+        <span class="dec-badge b-sec">Authz</span>
+      </div>
+      <div class="dec-body">
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-bulb" aria-hidden="true"></i>Decisión</div>
+          <p class="dec-text">OPA como sidecar (Envoy ext_authz filter en Istio). Policies en Rego versionadas en Git. Ejemplo: usuario puede ver reservas propias (<code>input.user.id == input.resource.owner_id</code>), admin puede cancelar eventos, MFA requerido para payments.</p>
+        </div>
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-checkbox" aria-hidden="true"></i>Trade-off</div>
+          <p class="dec-text">Alternativa: lógica de authorization embebida en cada servicio (Spring Security). <strong>OPA externaliza policy de código</strong> — cambios sin redeploys, audit centralizado, policies testeables con OPA test framework. Costo: ~1-2ms latency adicional por request (cached). Trade-off acepta esta latencia por la flexibilidad y auditabilidad.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="dec-card">
+      <div class="dec-header">
+        <div class="dec-icon" style="background:var(--purple-bg);color:var(--purple)"><i class="ti ti-shield-check" aria-hidden="true"></i></div>
+        <div class="dec-meta">
+          <div class="dec-title">Cloud Armor + Secret Manager</div>
+          <div class="dec-sub">Edge security + gestión de secretos</div>
+        </div>
+        <span class="dec-badge b-sec">Defense</span>
+      </div>
+      <div class="dec-body">
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-bulb" aria-hidden="true"></i>Decisiones</div>
+          <p class="dec-text"><strong>Cloud Armor:</strong> WAF con reglas OWASP Top 10, DDoS Adaptive Protection L7, rate limiting por IP, geo-blocking opcional. Absorbe ataques antes del LB. <strong>GCP Secret Manager:</strong> todas las credenciales (DB passwords, Stripe API key, JWT signing key) en Secret Manager con rotación automática. Aplicaciones consumen via Workload Identity, nunca como env vars planos en YAML.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════ OBSERVABILIDAD ═══════════════ -->
+<div class="view" id="view-obs">
+  <div class="context-box">
+    <strong>SRE como ciudadano de primera clase.</strong> Los tres pilares (métricas, logs, tracing) están desde el día 1. SLOs definidos antes de production. Error budget burn rate alerts. Esto reutiliza el stack Grafana ya operacional en NFD S.A.
+  </div>
+
+  <div class="dec-grid">
+
+    <div class="dec-card">
+      <div class="dec-header">
+        <div class="dec-icon" style="background:var(--teal-bg);color:var(--teal)"><i class="ti ti-chart-dots" aria-hidden="true"></i></div>
+        <div class="dec-meta">
+          <div class="dec-title">Prometheus + Grafana + Alertmanager</div>
+          <div class="dec-sub">Métricas y dashboards. SLO burn rate alerts.</div>
+        </div>
+        <span class="dec-badge b-obs">Metrics</span>
+      </div>
+      <div class="dec-body">
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-bulb" aria-hidden="true"></i>Decisión</div>
+          <p class="dec-text">Prometheus federado (un Prometheus por GKE cluster + un global aggregator). Grafana para visualización — dashboards por servicio + SLO dashboard global. Alertmanager con integración PagerDuty. <strong>SLOs definidos:</strong> search p99 &lt; 200ms, checkout p99 &lt; 500ms, queue join p99 &lt; 100ms, availability 99.9% mensual.</p>
+        </div>
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-scale" aria-hidden="true"></i>Trade-off vs Google Cloud Operations</div>
+          <p class="dec-text">Google Cloud Operations (ex Stackdriver) está integrado y serverless. <strong>Pero Grafana es portable</strong> entre clouds (NFD S.A. tiene workloads en OCI también). Prometheus es OSS estándar. Trade-off: gestión operacional adicional vs portabilidad y consistencia entre clouds. <strong>Long-term storage:</strong> Prometheus retiene 15 días, exporta a BigQuery via Grafana datasource para análisis histórico (compliance, capacity planning).</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="dec-card">
+      <div class="dec-header">
+        <div class="dec-icon" style="background:var(--blue-bg);color:var(--blue)"><i class="ti ti-binary-tree" aria-hidden="true"></i></div>
+        <div class="dec-meta">
+          <div class="dec-title">OpenTelemetry + Google Cloud Trace</div>
+          <div class="dec-sub">Distributed tracing W3C TraceContext, auto-instrumentación</div>
+        </div>
+        <span class="dec-badge b-obs">Tracing</span>
+      </div>
+      <div class="dec-body">
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-bulb" aria-hidden="true"></i>Decisión</div>
+          <p class="dec-text">OpenTelemetry Java Agent (auto-instrumentación de Spring, JDBC, Kafka, HTTP clients). Sampling: 100% en errores, 10% en éxito (head-based sampling), 100% en checkout flow. Exportador hacia Google Cloud Trace (managed, sin operar Jaeger). Trace ID propagado en logs y respuestas HTTP (header <code>X-Trace-Id</code>) para correlación.</p>
+        </div>
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-checkbox" aria-hidden="true"></i>Trade-off</div>
+          <p class="dec-text">Alternativa Jaeger self-hosted: control total pero ops. <strong>Cloud Trace managed</strong>: integrado con GCP, retention 30 días, query rápido. Costo: $0.20 por millón de spans — barato a escala. <strong>OpenTelemetry es vendor-neutral</strong>, si en el futuro se migra a otro backend (Datadog, Honeycomb), el código de instrumentación no cambia.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="dec-card">
+      <div class="dec-header">
+        <div class="dec-icon" style="background:var(--coral-bg);color:var(--coral)"><i class="ti ti-file-text" aria-hidden="true"></i></div>
+        <div class="dec-meta">
+          <div class="dec-title">Cloud Logging — Structured JSON logs</div>
+          <div class="dec-sub">Centralizado, correlacionado con trace ID, exportado a BigQuery</div>
+        </div>
+        <span class="dec-badge b-obs">Logs</span>
+      </div>
+      <div class="dec-body">
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-bulb" aria-hidden="true"></i>Decisión</div>
+          <p class="dec-text">Logback con Logstash JSON encoder. Cada log incluye <code>trace_id, span_id, user_id, event_id</code> cuando aplica. Cloud Logging captura stdout de pods automáticamente. Log-based metrics para alerting (ej: alertar si <code>level=ERROR AND service=payment</code> &gt; 10/min). Export a BigQuery para análisis ad-hoc con SQL.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════ AI ═══════════════ -->
+<div class="view" id="view-ai">
+  <div class="context-box">
+    <strong>Spring AI como abstracción.</strong> Spring AI 1.x estandariza la integración con LLMs (Gemini, OpenAI, Anthropic), embeddings y vector stores. Esta capa de abstracción permite cambiar de provider sin reescribir lógica de negocio.
+  </div>
+
+  <div class="dec-grid">
+
+    <div class="dec-card">
+      <div class="dec-header">
+        <div class="dec-icon" style="background:var(--pink-bg);color:var(--pink)"><i class="ti ti-brain" aria-hidden="true"></i></div>
+        <div class="dec-meta">
+          <div class="dec-title">Spring AI 1.x + Vertex AI Gemini Pro</div>
+          <div class="dec-sub">ChatClient, ChatMemory, VectorStore, Advisors (RAG), Function Calling</div>
+        </div>
+        <span class="dec-badge b-ai">LLM</span>
+      </div>
+      <div class="dec-body">
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-bulb" aria-hidden="true"></i>Decisión</div>
+          <p class="dec-text">Spring AI con <code>spring-ai-vertex-ai-gemini-spring-boot-starter</code>. Gemini 1.5 Pro como modelo principal (1M token context, excelente para RAG). <code>QuestionAnswerAdvisor</code> para RAG automático sobre pgvector. <code>ChatMemory</code> via PostgreSQL para sessions multi-turn. <code>Function Calling</code> para que el LLM pueda invocar tools (ej: <code>getEventDetails(id)</code>, <code>checkAvailability(eventId)</code>).</p>
+        </div>
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-scale" aria-hidden="true"></i>Trade-off vs OpenAI / Anthropic</div>
+          <table class="comp-table">
+            <thead><tr><th>Provider</th><th>Ventaja</th><th>Desventaja</th></tr></thead>
+            <tbody>
+              <tr class="chosen">
+                <td>Vertex AI Gemini ✓</td>
+                <td class="pros">Mismo cloud que el resto (GCP). Pricing competitivo. 1M context. Data residency.</td>
+                <td class="cons">Ecosystem más nuevo, menos benchmarks públicos vs GPT/Claude</td>
+              </tr>
+              <tr>
+                <td>OpenAI GPT-4o</td>
+                <td class="pros">Mejor performance reasoning. Comunidad enorme.</td>
+                <td class="cons">External provider (latencia + egress). Data fuera de GCP.</td>
+              </tr>
+              <tr>
+                <td>Anthropic Claude</td>
+                <td class="pros">Excelente para análisis largos. Constitution AI safety.</td>
+                <td class="cons">Latencia transcontinental. Bedrock o API directa.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-checkbox" aria-hidden="true"></i>Por qué Spring AI</div>
+          <p class="dec-text"><strong>Si mañana cambiamos a Claude o GPT-5</strong>, solo cambiamos el starter en Maven — la lógica de negocio (ChatClient, advisors) permanece igual. Spring AI estandariza vendor-neutral. Para una arquitectura que debe sobrevivir 5+ años, esta abstracción es crítica.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="dec-card">
+      <div class="dec-header">
+        <div class="dec-icon" style="background:var(--purple-bg);color:var(--purple)"><i class="ti ti-vector" aria-hidden="true"></i></div>
+        <div class="dec-meta">
+          <div class="dec-title">pgvector + HNSW index</div>
+          <div class="dec-sub">Vector store para embeddings de eventos (dim 768)</div>
+        </div>
+        <span class="dec-badge b-ai">Vector DB</span>
+      </div>
+      <div class="dec-body">
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-bulb" aria-hidden="true"></i>Decisión</div>
+          <p class="dec-text">pgvector extension sobre PostgreSQL existente (ai_db). Embeddings generados por <code>text-embedding-004</code> (768 dim). Índice HNSW (Hierarchical Navigable Small World) con <code>ef_construction=128, m=16</code>. Búsqueda por similitud coseno con filtros pre-retrieval via JSONB metadata.</p>
+        </div>
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-scale" aria-hidden="true"></i>Trade-off vs Pinecone / Weaviate / Vertex AI Vector Search</div>
+          <p class="dec-text"><strong>Pinecone/Weaviate</strong> son vector DBs especializados, scaling horizontal nativo, latencia &lt;5ms a 1B vectors. <strong>Vertex AI Vector Search</strong> es managed por GCP. <strong>pgvector ganó por:</strong> reutiliza infra Postgres existente (sin nuevo componente operacional), transacciones ACID (embedding y metadata atómicos), costo cero adicional. Trade-off explícito: pgvector escala bien hasta ~10M vectors con HNSW; si superamos eso, migración a Vertex AI Vector Search planeada (Spring AI lo abstrae).</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════ RESILIENCIA ═══════════════ -->
+<div class="view" id="view-res">
+  <div class="context-box">
+    <strong>Resilience4j en cada operación crítica.</strong> Circuit Breaker, Retry, Bulkhead, TimeLimiter, RateLimiter. Configurado declarativamente con annotations. Métricas exportadas a Prometheus para visibilidad. Default: fail fast con fallback inteligente.
+  </div>
+
+  <div class="dec-grid">
+
+    <div class="dec-card">
+      <div class="dec-header">
+        <div class="dec-icon" style="background:var(--teal-bg);color:var(--teal)"><i class="ti ti-shield-bolt" aria-hidden="true"></i></div>
+        <div class="dec-meta">
+          <div class="dec-title">Resilience4j — Patrones aplicados por operación</div>
+          <div class="dec-sub">Circuit Breaker, Retry, Bulkhead, TimeLimiter</div>
+        </div>
+        <span class="dec-badge b-obs">Resilience</span>
+      </div>
+      <div class="dec-body">
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-bulb" aria-hidden="true"></i>Configuración por servicio</div>
+          <table class="comp-table">
+            <thead><tr><th>Operación</th><th>Patrones</th><th>Configuración</th></tr></thead>
+            <tbody>
+              <tr><td>Payment → Stripe/PayU</td><td>CB + Retry + TL</td><td>CB abre con 5 fallos/30s. Retry 1s→2s→4s→8s. TL 5s.</td></tr>
+              <tr><td>Reservation → Inventory</td><td>CB + Bulkhead</td><td>CB 10 fallos/60s. Bulkhead 50 threads concurrentes.</td></tr>
+              <tr><td>Catalog → Elasticsearch</td><td>CB + Fallback DB</td><td>CB abre, fallback a PostgreSQL query.</td></tr>
+              <tr><td>AI Discovery → Vertex AI</td><td>CB + TL + Cache</td><td>CB 3 fallos/30s. TL 10s. Cache de embeddings recientes.</td></tr>
+              <tr><td>Gateway → cualquier servicio</td><td>RateLimiter + CB</td><td>RL 100/s por servicio. CB abre con 50% error rate.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-scale" aria-hidden="true"></i>Trade-off vs Hystrix / Sentinel</div>
+          <p class="dec-text"><strong>Hystrix</strong> está en maintenance mode desde 2018. <strong>Sentinel</strong> (Alibaba) es potente pero ecosystem chino, menos community en occidente. <strong>Resilience4j</strong> es el sucesor de facto en JVM: lightweight, Java 8+, modular (incluyes solo lo que usás), integrado con Micrometer. Decisión obvia para el stack.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="dec-card">
+      <div class="dec-header">
+        <div class="dec-icon" style="background:var(--amber-bg);color:var(--amber)"><i class="ti ti-arrows-shuffle" aria-hidden="true"></i></div>
+        <div class="dec-meta">
+          <div class="dec-title">Patrones de consistencia distribuida</div>
+          <div class="dec-sub">Saga coreografiado + Outbox + Idempotency Keys</div>
+        </div>
+        <span class="dec-badge b-obs">Patterns</span>
+      </div>
+      <div class="dec-body">
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-bulb" aria-hidden="true"></i>Decisiones</div>
+          <p class="dec-text"><strong>Saga coreografiado</strong> (no orquestado): cada servicio reacciona a eventos sin orquestador central. Menos acoplamiento pero más complejo de debuggear. Mitigado con OpenTelemetry tracing. <strong>Outbox Pattern</strong>: garantiza que eventos publicados a Kafka están en sync con commits a DB. Sin outbox, riesgo de "DB commited pero Kafka falló" rompe la consistencia eventual. <strong>Idempotency Keys</strong>: header <code>X-Idempotency-Key</code> en operaciones no idempotentes (payment, reservation). Server cachea respuesta por 24h.</p>
+        </div>
+        <div class="dec-section">
+          <div class="dec-section-title"><i class="ti ti-checkbox" aria-hidden="true"></i>Por qué coreografiado y no orquestado</div>
+          <p class="dec-text">Saga orquestado (con un Saga Coordinator central, ej. Camunda/Temporal) simplifica debugging y visibilidad del flujo. <strong>Pero introduce single point of coupling</strong>: el coordinator conoce todos los pasos. Para escalado y evolución independiente de cada BC, coreografiado gana. <strong>Trade-off:</strong> debugging vía traces distribuidos requiere mejor instrumentación — invertido en OpenTelemetry para compensar.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>TicketStorm · Tech Stack & Trade-off Analysis v1.0 · Matías Martínez · Bootcamp Arquitecturas Backend Gran Escala · Código Facilito 2026</footer>
+
+<script>
+function sw(tab){
+  const tabs=['runtime','data','msg','infra','sec','obs','ai','res'];
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',tabs[i]===tab));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+tab).classList.add('active');
+}
+</script>
+</body>
+</html>

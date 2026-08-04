@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TicketStorm — System Design Architecture</title>
+<link rel="stylesheet" href="https://unpkg.com/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg2: #161b22;
+    --bg3: #21262d;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.15);
+    --text: #e6edf3;
+    --text2: #8b949e;
+    --text3: #6e7681;
+    --blue: #58a6ff;
+    --blue-bg: rgba(88,166,255,0.08);
+    --blue-border: rgba(88,166,255,0.25);
+    --teal: #3fb950;
+    --teal-bg: rgba(63,185,80,0.08);
+    --teal-border: rgba(63,185,80,0.25);
+    --purple: #d2a8ff;
+    --purple-bg: rgba(210,168,255,0.08);
+    --purple-border: rgba(210,168,255,0.25);
+    --amber: #e3b341;
+    --amber-bg: rgba(227,179,65,0.08);
+    --amber-border: rgba(227,179,65,0.25);
+    --coral: #f78166;
+    --coral-bg: rgba(247,129,102,0.08);
+    --coral-border: rgba(247,129,102,0.25);
+    --pink: #f778ba;
+    --pink-bg: rgba(247,120,186,0.08);
+    --pink-border: rgba(247,120,186,0.25);
+    --gray-bg: rgba(139,148,158,0.08);
+    --gray-border: rgba(139,148,158,0.2);
+    --radius: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    padding: 28px 32px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .header-left { flex: 1; }
+  .project-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--blue-bg);
+    border: 1px solid var(--blue-border);
+    color: var(--blue);
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+  }
+  .header p {
+    color: var(--text2);
+    font-size: 13px;
+    font-family: -apple-system, sans-serif;
+    max-width: 600px;
+    line-height: 1.6;
+  }
+  .meta-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 14px;
+  }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+    font-family: -apple-system, sans-serif;
+    border: 1px solid;
+  }
+  .pill-blue  { background: var(--blue-bg);   border-color: var(--blue-border);   color: var(--blue);   }
+  .pill-teal  { background: var(--teal-bg);   border-color: var(--teal-border);   color: var(--teal);   }
+  .pill-purple{ background: var(--purple-bg); border-color: var(--purple-border); color: var(--purple); }
+  .pill-amber { background: var(--amber-bg);  border-color: var(--amber-border);  color: var(--amber);  }
+  .pill-coral { background: var(--coral-bg);  border-color: var(--coral-border);  color: var(--coral);  }
+  .pill-pink  { background: var(--pink-bg);   border-color: var(--pink-border);   color: var(--pink);   }
+
+  /* ── LEGEND ── */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 14px 32px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11px;
+    color: var(--text2);
+    font-family: -apple-system, sans-serif;
+  }
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  /* ── MAIN CANVAS ── */
+  .canvas {
+    padding: 24px 32px 40px;
+    overflow-x: auto;
+  }
+
+  /* ── ZONES (dashed containers) ── */
+  .zone {
+    border: 1.5px dashed;
+    border-radius: var(--radius-xl);
+    padding: 14px;
+    position: relative;
+    margin-bottom: 16px;
+  }
+  .zone-label {
+    position: absolute;
+    top: -11px;
+    left: 16px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-family: -apple-system, sans-serif;
+  }
+  .zone-clients   { border-color: var(--gray-border); }
+  .zone-clients .zone-label { background: var(--bg); color: var(--text3); border: 1px solid var(--gray-border); }
+  .zone-edge      { border-color: var(--blue-border); }
+  .zone-edge .zone-label    { background: var(--bg); color: var(--blue); border: 1px solid var(--blue-border); }
+  .zone-services  { border-color: var(--teal-border); }
+  .zone-services .zone-label{ background: var(--bg); color: var(--teal); border: 1px solid var(--teal-border); }
+  .zone-data      { border-color: var(--amber-border); }
+  .zone-data .zone-label    { background: var(--bg); color: var(--amber); border: 1px solid var(--amber-border); }
+  .zone-gcp       { border-color: var(--coral-border); }
+  .zone-gcp .zone-label     { background: var(--bg); color: var(--coral); border: 1px solid var(--coral-border); }
+  .zone-obs       { border-color: var(--purple-border); }
+  .zone-obs .zone-label     { background: var(--bg); color: var(--purple); border: 1px solid var(--purple-border); }
+  .zone-ai        { border-color: var(--pink-border); }
+  .zone-ai .zone-label      { background: var(--bg); color: var(--pink); border: 1px solid var(--pink-border); }
+
+  /* ── ROW & GRID LAYOUTS ── */
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .row-center { justify-content: center; }
+  .col { display: flex; flex-direction: column; gap: 10px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+
+  /* ── COMPONENT CARDS ── */
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, transform 0.15s;
+    position: relative;
+    min-width: 0;
+  }
+  .card:hover {
+    border-color: var(--border2);
+    background: var(--bg3);
+    transform: translateY(-1px);
+  }
+  .card-icon {
+    font-size: 16px;
+    margin-bottom: 6px;
+    display: block;
+  }
+  .card-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text);
+    font-family: -apple-system, sans-serif;
+    margin-bottom: 3px;
+    line-height: 1.3;
+  }
+  .card-sub {
+    font-size: 10px;
+    color: var(--text3);
+    font-family: -apple-system, sans-serif;
+    line-height: 1.4;
+  }
+  .card-tag {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    padding: 2px 7px;
+    border-radius: 20px;
+    margin-top: 6px;
+    font-family: -apple-system, sans-serif;
+    text-transform: uppercase;
+  }
+
+  /* color variants */
+  .card-blue   { border-color: var(--blue-border);   }
+  .card-blue:hover { border-color: var(--blue); }
+  .card-blue .card-icon { color: var(--blue); }
+  .card-blue .card-tag  { background: var(--blue-bg); color: var(--blue); }
+
+  .card-teal   { border-color: var(--teal-border);   }
+  .card-teal:hover { border-color: var(--teal); }
+  .card-teal .card-icon { color: var(--teal); }
+  .card-teal .card-tag  { background: var(--teal-bg); color: var(--teal); }
+
+  .card-purple { border-color: var(--purple-border); }
+  .card-purple:hover { border-color: var(--purple); }
+  .card-purple .card-icon { color: var(--purple); }
+  .card-purple .card-tag  { background: var(--purple-bg); color: var(--purple); }
+
+  .card-amber  { border-color: var(--amber-border);  }
+  .card-amber:hover { border-color: var(--amber); }
+  .card-amber .card-icon { color: var(--amber); }
+  .card-amber .card-tag  { background: var(--amber-bg); color: var(--amber); }
+
+  .card-coral  { border-color: var(--coral-border);  }
+  .card-coral:hover { border-color: var(--coral); }
+  .card-coral .card-icon { color: var(--coral); }
+  .card-coral .card-tag  { background: var(--coral-bg); color: var(--coral); }
+
+  .card-pink   { border-color: var(--pink-border);   }
+  .card-pink:hover { border-color: var(--pink); }
+  .card-pink .card-icon { color: var(--pink); }
+  .card-pink .card-tag  { background: var(--pink-bg); color: var(--pink); }
+
+  /* ── FLOW ARROWS ── */
+  .arrow-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 6px 0;
+    gap: 8px;
+    color: var(--text3);
+    font-size: 11px;
+    font-family: -apple-system, sans-serif;
+  }
+  .arrow-line {
+    flex: 1;
+    max-width: 120px;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--border2), transparent);
+    position: relative;
+  }
+  .arrow-label {
+    font-size: 10px;
+    color: var(--text3);
+    font-family: -apple-system, sans-serif;
+    letter-spacing: 0.03em;
+  }
+  .flow-arrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4px 0;
+  }
+  .flow-arrow-line {
+    width: 1px;
+    height: 20px;
+    background: var(--border2);
+  }
+  .flow-arrow-head {
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 6px solid var(--border2);
+  }
+  .flow-arrow-label {
+    font-size: 10px;
+    color: var(--text3);
+    font-family: -apple-system, sans-serif;
+    margin-top: 4px;
+  }
+
+  /* ── KAFKA TOPIC ── */
+  .kafka-bus {
+    background: var(--amber-bg);
+    border: 1px solid var(--amber-border);
+    border-radius: var(--radius);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 8px 0;
+  }
+  .kafka-bus-icon { color: var(--amber); font-size: 18px; }
+  .kafka-bus-text { flex: 1; }
+  .kafka-bus-name { font-size: 12px; font-weight: 700; color: var(--amber); font-family: -apple-system, sans-serif; }
+  .kafka-bus-sub  { font-size: 10px; color: var(--text3); font-family: -apple-system, sans-serif; }
+  .kafka-topics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 5px;
+  }
+  .topic-pill {
+    font-size: 9px;
+    font-weight: 600;
+    font-family: ui-monospace, monospace;
+    background: rgba(227,179,65,0.12);
+    color: var(--amber);
+    padding: 2px 8px;
+    border-radius: 20px;
+    border: 1px solid rgba(227,179,65,0.2);
+  }
+
+  /* ── DETAIL PANEL ── */
+  .detail-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .detail-overlay.open { display: flex; }
+  .detail-panel {
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-xl);
+    padding: 24px;
+    max-width: 540px;
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+  }
+  .detail-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text2);
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: border-color 0.15s;
+  }
+  .detail-close:hover { border-color: var(--border2); color: var(--text); }
+  .detail-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    font-family: -apple-system, sans-serif;
+    margin-bottom: 4px;
+  }
+  .detail-type {
+    font-size: 11px;
+    color: var(--text3);
+    font-family: -apple-system, sans-serif;
+    margin-bottom: 16px;
+  }
+  .detail-section {
+    margin-bottom: 16px;
+  }
+  .detail-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text3);
+    font-family: -apple-system, sans-serif;
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  .detail-item {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 6px;
+    font-family: -apple-system, sans-serif;
+  }
+  .detail-item-key {
+    font-size: 11px;
+    color: var(--text3);
+    min-width: 100px;
+    flex-shrink: 0;
+  }
+  .detail-item-val {
+    font-size: 11px;
+    color: var(--text);
+  }
+  .detail-list {
+    list-style: none;
+    padding: 0;
+  }
+  .detail-list li {
+    font-size: 11px;
+    color: var(--text2);
+    font-family: -apple-system, sans-serif;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .detail-list li::before { content: "→"; color: var(--text3); flex-shrink: 0; }
+  .code-tag {
+    font-family: ui-monospace, monospace;
+    font-size: 10px;
+    background: var(--bg3);
+    color: var(--blue);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+  .tradeoff-box {
+    background: var(--bg3);
+    border-left: 3px solid var(--amber);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 10px 12px;
+    margin-top: 10px;
+  }
+  .tradeoff-title { font-size: 10px; font-weight: 700; color: var(--amber); font-family: -apple-system, sans-serif; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .tradeoff-text  { font-size: 11px; color: var(--text2); font-family: -apple-system, sans-serif; line-height: 1.5; }
+
+  /* ── STATS BAR ── */
+  .stats-bar {
+    display: flex;
+    gap: 24px;
+    padding: 12px 32px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .stat { text-align: center; }
+  .stat-val { font-size: 18px; font-weight: 700; color: var(--text); font-family: -apple-system, sans-serif; }
+  .stat-label { font-size: 10px; color: var(--text3); font-family: -apple-system, sans-serif; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  /* responsive */
+  @media (max-width: 720px) {
+    .grid-4 { grid-template-columns: repeat(2, 1fr); }
+    .grid-3 { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="project-tag">
+      <i class="ti ti-ticket" aria-hidden="true"></i>
+      Proyecto Final — Bootcamp Backend Gran Escala
+    </div>
+    <h1>TicketStorm — System Design</h1>
+    <p>Arquitectura de microservicios de alta concurrencia para venta de tickets en eventos masivos. Diseñada para 50M DAU con soporte a picos de ~5M usuarios concurrentes sin overbooking. <strong style="color:var(--text)">Matías Martínez · NFD S.A. · 2026</strong></p>
+    <div class="meta-pills">
+      <span class="pill pill-blue"><i class="ti ti-brand-java" aria-hidden="true"></i> Java 21 + Loom</span>
+      <span class="pill pill-teal"><i class="ti ti-brand-kubernetes" aria-hidden="true"></i> GKE + Istio</span>
+      <span class="pill pill-amber"><i class="ti ti-topology-star-3" aria-hidden="true"></i> Kafka</span>
+      <span class="pill pill-purple"><i class="ti ti-chart-line" aria-hidden="true"></i> Prometheus + Grafana</span>
+      <span class="pill pill-pink"><i class="ti ti-robot" aria-hidden="true"></i> Spring AI + Vertex AI</span>
+      <span class="pill pill-coral"><i class="ti ti-brand-google" aria-hidden="true"></i> GCP + OCI</span>
+    </div>
+  </div>
+</div>
+
+<div class="stats-bar">
+  <div class="stat"><div class="stat-val" style="color:var(--blue)">50M</div><div class="stat-label">DAU</div></div>
+  <div class="stat"><div class="stat-val" style="color:var(--coral)">5M</div><div class="stat-label">Concurrentes</div></div>
+  <div class="stat"><div class="stat-val" style="color:var(--teal)">7</div><div class="stat-label">Microservicios</div></div>
+  <div class="stat"><div class="stat-val" style="color:var(--purple)">0</div><div class="stat-label">Overbooking</div></div>
+  <div class="stat"><div class="stat-val" style="color:var(--amber)">&lt;200ms</div><div class="stat-label">p99 Search</div></div>
+  <div class="stat"><div class="stat-val" style="color:var(--pink)">&lt;500ms</div><div class="stat-label">p99 Checkout</div></div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--blue-border)"></div> Capa Edge / API</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--teal-border)"></div> Microservicios core</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--amber-border)"></div> Messaging / Bases de datos</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--purple-border)"></div> Observabilidad / SRE</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--pink-border)"></div> Spring AI / ML</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--coral-border)"></div> Infraestructura GCP</div>
+  <div class="legend-item"><i class="ti ti-hand-click" style="color:var(--text3);font-size:12px" aria-hidden="true"></i> <span>Click en componente para trade-offs</span></div>
+</div>
+
+<div class="canvas">
+
+  <!-- ═══════════════════ CLIENTS ═══════════════════ -->
+  <div class="zone zone-clients">
+    <span class="zone-label">Clientes</span>
+    <div class="row row-center">
+      <div class="card card-blue" style="width:140px" onclick="showDetail('web')">
+        <span class="card-icon"><i class="ti ti-device-desktop" aria-hidden="true"></i></span>
+        <div class="card-name">Web App</div>
+        <div class="card-sub">React SPA / SSR</div>
+        <span class="card-tag">HTTPS / WS</span>
+      </div>
+      <div class="card card-blue" style="width:140px" onclick="showDetail('mobile')">
+        <span class="card-icon"><i class="ti ti-device-mobile" aria-hidden="true"></i></span>
+        <div class="card-name">Mobile App</div>
+        <div class="card-sub">iOS / Android</div>
+        <span class="card-tag">HTTPS / WS</span>
+      </div>
+      <div class="card card-blue" style="width:140px" onclick="showDetail('thirdparty')">
+        <span class="card-icon"><i class="ti ti-plug" aria-hidden="true"></i></span>
+        <div class="card-name">Third-party API</div>
+        <div class="card-sub">Integraciones B2B</div>
+        <span class="card-tag">REST / OAuth2</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-arrow"><div class="flow-arrow-line"></div><div class="flow-arrow-head"></div><div class="flow-arrow-label">TLS 1.3</div></div>
+
+  <!-- ═══════════════════ EDGE / CDN / WAF ═══════════════════ -->
+  <div class="zone zone-edge">
+    <span class="zone-label">Edge — GCP Cloud Armor + CDN</span>
+    <div class="grid-3">
+      <div class="card card-blue" onclick="showDetail('cloudarmor')">
+        <span class="card-icon"><i class="ti ti-shield-check" aria-hidden="true"></i></span>
+        <div class="card-name">Cloud Armor / WAF</div>
+        <div class="card-sub">DDoS mitigation, reglas OWASP Top 10, IP rate-limit geográfico</div>
+        <span class="card-tag">WAF</span>
+      </div>
+      <div class="card card-blue" onclick="showDetail('cdn')">
+        <span class="card-icon"><i class="ti ti-world" aria-hidden="true"></i></span>
+        <div class="card-name">Cloud CDN</div>
+        <div class="card-sub">Cacheo de páginas de eventos, imágenes, assets estáticos. TTL por evento</div>
+        <span class="card-tag">CDN</span>
+      </div>
+      <div class="card card-blue" onclick="showDetail('lb')">
+        <span class="card-icon"><i class="ti ti-arrows-split-2" aria-hidden="true"></i></span>
+        <div class="card-name">Cloud Load Balancer</div>
+        <div class="card-sub">Global HTTP(S) LB con health checks, session affinity para WS</div>
+        <span class="card-tag">L7 LB</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-arrow"><div class="flow-arrow-line"></div><div class="flow-arrow-head"></div><div class="flow-arrow-label">JWT + mTLS (Istio)</div></div>
+
+  <!-- ═══════════════════ API GATEWAY + KEYCLOAK ═══════════════════ -->
+  <div class="zone zone-edge" style="margin-bottom:8px">
+    <span class="zone-label">API Gateway + Auth — GKE</span>
+    <div class="grid-4">
+      <div class="card card-blue" onclick="showDetail('gateway')">
+        <span class="card-icon"><i class="ti ti-route" aria-hidden="true"></i></span>
+        <div class="card-name">Spring Cloud Gateway</div>
+        <div class="card-sub">Rate limiting por userId/eventId. Routing. Circuit breaker. Canary split</div>
+        <span class="card-tag">API GW</span>
+      </div>
+      <div class="card card-blue" onclick="showDetail('keycloak')">
+        <span class="card-icon"><i class="ti ti-key" aria-hidden="true"></i></span>
+        <div class="card-name">Keycloak (OIDC)</div>
+        <div class="card-sub">Auth server. JWT RS256. Refresh tokens. MFA para compras</div>
+        <span class="card-tag">Auth</span>
+      </div>
+      <div class="card card-blue" onclick="showDetail('istio')">
+        <span class="card-icon"><i class="ti ti-network" aria-hidden="true"></i></span>
+        <div class="card-name">Istio Service Mesh</div>
+        <div class="card-sub">mTLS inter-servicio. Traffic splitting. Distributed tracing inject. OPA sidecar</div>
+        <span class="card-tag">Service Mesh</span>
+      </div>
+      <div class="card card-blue" onclick="showDetail('opa')">
+        <span class="card-icon"><i class="ti ti-file-check" aria-hidden="true"></i></span>
+        <div class="card-name">OPA (Authz)</div>
+        <div class="card-sub">Políticas de autorización declarativas. RBAC fine-grained por recurso</div>
+        <span class="card-tag">Policy</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-arrow"><div class="flow-arrow-line"></div><div class="flow-arrow-head"></div><div class="flow-arrow-label">gRPC interno / REST externo</div></div>
+
+  <!-- ═══════════════════ MICROSERVICES ═══════════════════ -->
+  <div class="zone zone-services">
+    <span class="zone-label">Microservicios Core — GKE (Java 21 + Virtual Threads)</span>
+
+    <div class="grid-4" style="margin-bottom:10px">
+      <div class="card card-teal" onclick="showDetail('catalog')">
+        <span class="card-icon"><i class="ti ti-list-search" aria-hidden="true"></i></span>
+        <div class="card-name">Event Catalog Service</div>
+        <div class="card-sub">CRUD eventos, venues, artistas. Read-heavy. Cache-aside con Redis</div>
+        <span class="card-tag">BC: Catalog</span>
+      </div>
+      <div class="card card-coral" onclick="showDetail('queue')">
+        <span class="card-icon"><i class="ti ti-queue" aria-hidden="true"></i></span>
+        <div class="card-name">Virtual Queue Service</div>
+        <div class="card-sub">Fila virtual por evento. Redis Sorted Sets. WebSocket push. Token JWT con TTL</div>
+        <span class="card-tag">BC: Queue</span>
+      </div>
+      <div class="card card-coral" onclick="showDetail('inventory')">
+        <span class="card-icon"><i class="ti ti-armchair" aria-hidden="true"></i></span>
+        <div class="card-name">Inventory Service</div>
+        <div class="card-sub">Disponibilidad de asientos. Redis Bitmap + Lua atómico. Anti-overbooking CP</div>
+        <span class="card-tag">BC: Inventory</span>
+      </div>
+      <div class="card card-teal" onclick="showDetail('reservation')">
+        <span class="card-icon"><i class="ti ti-clock-check" aria-hidden="true"></i></span>
+        <div class="card-name">Reservation Service</div>
+        <div class="card-sub">Reserva temporal 10min. Saga coreografiado. Event Sourcing. TTL Redis</div>
+        <span class="card-tag">BC: Reservation</span>
+      </div>
+    </div>
+
+    <div class="grid-3">
+      <div class="card card-teal" onclick="showDetail('payment')">
+        <span class="card-icon"><i class="ti ti-credit-card" aria-hidden="true"></i></span>
+        <div class="card-name">Payment Service</div>
+        <div class="card-sub">Gateway externo (Stripe/PayU). Idempotency keys. Circuit breaker. Retry exponencial</div>
+        <span class="card-tag">BC: Payment</span>
+      </div>
+      <div class="card card-teal" onclick="showDetail('notification')">
+        <span class="card-icon"><i class="ti ti-bell-ringing" aria-hidden="true"></i></span>
+        <div class="card-name">Notification Service</div>
+        <div class="card-sub">Event-driven puro. Outbox pattern. Fan-out masivo. Email/SMS/Push</div>
+        <span class="card-tag">BC: Notification</span>
+      </div>
+      <div class="card card-pink" onclick="showDetail('ai')">
+        <span class="card-icon"><i class="ti ti-brain" aria-hidden="true"></i></span>
+        <div class="card-name">AI Discovery Service</div>
+        <div class="card-sub">Spring AI + Vertex AI. Búsqueda semántica. RAG + pgvector. Fraud scoring</div>
+        <span class="card-tag">BC: AI</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-arrow"><div class="flow-arrow-line"></div><div class="flow-arrow-head"></div></div>
+
+  <!-- ═══════════════════ KAFKA ═══════════════════ -->
+  <div class="kafka-bus">
+    <i class="ti ti-topology-star-3 kafka-bus-icon" aria-hidden="true"></i>
+    <div class="kafka-bus-text">
+      <div class="kafka-bus-name">Apache Kafka — Event Backbone</div>
+      <div class="kafka-bus-sub">Particionado por eventId · Exactly-once semántics · Kafka Streams para agregaciones en tiempo real · Dead Letter Topics</div>
+      <div class="kafka-topics">
+        <span class="topic-pill">tickets.reserved</span>
+        <span class="topic-pill">tickets.purchased</span>
+        <span class="topic-pill">reservation.expired</span>
+        <span class="topic-pill">payment.processed</span>
+        <span class="topic-pill">payment.failed</span>
+        <span class="topic-pill">queue.position.updated</span>
+        <span class="topic-pill">inventory.released</span>
+        <span class="topic-pill">notification.send</span>
+        <span class="topic-pill">fraud.score.result</span>
+      </div>
+    </div>
+    <div style="cursor:pointer" onclick="showDetail('kafka')">
+      <i class="ti ti-info-circle" style="color:var(--amber);font-size:20px" aria-hidden="true"></i>
+    </div>
+  </div>
+
+  <div class="flow-arrow"><div class="flow-arrow-line"></div><div class="flow-arrow-head"></div></div>
+
+  <!-- ═══════════════════ DATA STORES ═══════════════════ -->
+  <div class="zone zone-data">
+    <span class="zone-label">Capa de Datos — GCP Managed</span>
+    <div class="grid-4">
+      <div class="card card-amber" onclick="showDetail('postgres')">
+        <span class="card-icon"><i class="ti ti-database" aria-hidden="true"></i></span>
+        <div class="card-name">Cloud SQL PostgreSQL</div>
+        <div class="card-sub">Event Store (Reservation). Payment (Idempotency). Catalog write-side</div>
+        <span class="card-tag">SQL CP</span>
+      </div>
+      <div class="card card-amber" onclick="showDetail('redis')">
+        <span class="card-icon"><i class="ti ti-bolt" aria-hidden="true"></i></span>
+        <div class="card-name">Redis Cluster</div>
+        <div class="card-sub">Inventory Bitmap. Queue Sorted Sets. Session tokens. Rate limiting. Distributed Lock</div>
+        <span class="card-tag">Cache</span>
+      </div>
+      <div class="card card-amber" onclick="showDetail('elasticsearch')">
+        <span class="card-icon"><i class="ti ti-zoom" aria-hidden="true"></i></span>
+        <div class="card-name">Elasticsearch</div>
+        <div class="card-sub">Full-text search de eventos. Faceted search. Geo-queries. Replica de Catalog</div>
+        <span class="card-tag">Search AP</span>
+      </div>
+      <div class="card card-pink" onclick="showDetail('pgvector')">
+        <span class="card-icon"><i class="ti ti-vector" aria-hidden="true"></i></span>
+        <div class="card-name">PostgreSQL + pgvector</div>
+        <div class="card-sub">Embeddings de eventos (dim 768). Semantic search. RAG context store para AI Discovery</div>
+        <span class="card-tag">Vector DB</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ AI / VERTEX ═══════════════════ -->
+  <div class="zone zone-ai" style="margin-top:16px">
+    <span class="zone-label">Spring AI + Vertex AI (GCP)</span>
+    <div class="grid-3">
+      <div class="card card-pink" onclick="showDetail('vertexllm')">
+        <span class="card-icon"><i class="ti ti-message-chatbot" aria-hidden="true"></i></span>
+        <div class="card-name">Gemini Pro (LLM)</div>
+        <div class="card-sub">ChatClient con function calling. Chatbot de discovery. Gemini 1.5 Pro via Vertex AI API</div>
+        <span class="card-tag">LLM</span>
+      </div>
+      <div class="card card-pink" onclick="showDetail('embeddings')">
+        <span class="card-icon"><i class="ti ti-dots-diagonal" aria-hidden="true"></i></span>
+        <div class="card-name">text-embedding-004</div>
+        <div class="card-sub">Embeddings de eventos para búsqueda semántica. Spring AI VectorStore abstraction</div>
+        <span class="card-tag">Embeddings</span>
+      </div>
+      <div class="card card-pink" onclick="showDetail('fraud')">
+        <span class="card-icon"><i class="ti ti-shield-exclamation" aria-hidden="true"></i></span>
+        <div class="card-name">Fraud Detection Model</div>
+        <div class="card-sub">Scoring en tiempo real vía Vertex AI Endpoint. Features: velocidad, IP, historial, device</div>
+        <span class="card-tag">ML Inference</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ OBSERVABILITY ═══════════════════ -->
+  <div class="zone zone-obs" style="margin-top:16px">
+    <span class="zone-label">Observabilidad + SRE — Stack Completo</span>
+    <div class="grid-4">
+      <div class="card card-purple" onclick="showDetail('prometheus')">
+        <span class="card-icon"><i class="ti ti-chart-dots" aria-hidden="true"></i></span>
+        <div class="card-name">Prometheus</div>
+        <div class="card-sub">Métricas vía Micrometer. SLOs definidos. Error budget burn rate alerts</div>
+        <span class="card-tag">Metrics</span>
+      </div>
+      <div class="card card-purple" onclick="showDetail('grafana')">
+        <span class="card-icon"><i class="ti ti-layout-dashboard" aria-hidden="true"></i></span>
+        <div class="card-name">Grafana</div>
+        <div class="card-sub">Dashboards por servicio. SLO/SLA dashboards. Alerting con PagerDuty integration</div>
+        <span class="card-tag">Dashboard</span>
+      </div>
+      <div class="card card-purple" onclick="showDetail('otel')">
+        <span class="card-icon"><i class="ti ti-binary-tree" aria-hidden="true"></i></span>
+        <div class="card-name">OpenTelemetry</div>
+        <div class="card-sub">Distributed tracing W3C TraceContext. Auto-instrumentación Spring. → Cloud Trace</div>
+        <span class="card-tag">Tracing</span>
+      </div>
+      <div class="card card-purple" onclick="showDetail('logging')">
+        <span class="card-icon"><i class="ti ti-file-text" aria-hidden="true"></i></span>
+        <div class="card-name">Cloud Logging</div>
+        <div class="card-sub">Structured JSON logs. Correlation con traceId. Log-based alerting. BigQuery export</div>
+        <span class="card-tag">Logs</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ GCP INFRA ═══════════════════ -->
+  <div class="zone zone-gcp" style="margin-top:16px">
+    <span class="zone-label">Infraestructura GCP + OCI — Multi-region</span>
+    <div class="grid-4">
+      <div class="card card-coral" onclick="showDetail('gke')">
+        <span class="card-icon"><i class="ti ti-brand-kubernetes" aria-hidden="true"></i></span>
+        <div class="card-name">GKE Autopilot</div>
+        <div class="card-sub">HPA + VPA. Spot nodes para workers. Multi-zone us-central1. Workload Identity</div>
+        <span class="card-tag">GKE</span>
+      </div>
+      <div class="card card-coral" onclick="showDetail('pubsub')">
+        <span class="card-icon"><i class="ti ti-send" aria-hidden="true"></i></span>
+        <div class="card-name">GCP Pub/Sub</div>
+        <div class="card-sub">Push de posición en fila. Notificaciones masivas. Fan-out para eventos de apertura</div>
+        <span class="card-tag">Async</span>
+      </div>
+      <div class="card card-coral" onclick="showDetail('spanner')">
+        <span class="card-icon"><i class="ti ti-world-cog" aria-hidden="true"></i></span>
+        <div class="card-name">Cloud Spanner</div>
+        <div class="card-sub">Opcional para escala global del Inventory. Consistencia externa. Extensión futura</div>
+        <span class="card-tag">Global DB</span>
+      </div>
+      <div class="card card-coral" onclick="showDetail('oci')">
+        <span class="card-icon"><i class="ti ti-server" aria-hidden="true"></i></span>
+        <div class="card-name">OCI (Oracle Cloud)</div>
+        <div class="card-sub">DR / failover. Replica de datos críticos. Aprovechamiento stack actual NFD S.A.</div>
+        <span class="card-tag">Multi-cloud</span>
+      </div>
+    </div>
+  </div>
+
+  <p style="text-align:center;color:var(--text3);font-size:11px;font-family:-apple-system,sans-serif;margin-top:24px;padding-top:16px;border-top:1px solid var(--border)">
+    TicketStorm · System Design v1.0 · Matías Martínez · Bootcamp Arquitecturas Backend Gran Escala · Código Facilito 2026
+  </p>
+
+</div><!-- /canvas -->
+
+<!-- ═══════════════════ DETAIL OVERLAY ═══════════════════ -->
+<div class="detail-overlay" id="overlay" onclick="closeDetail(event)">
+  <div class="detail-panel" id="panel">
+    <button class="detail-close" onclick="closeAll()"><i class="ti ti-x" aria-hidden="true"></i></button>
+    <div id="panel-content"></div>
+  </div>
+</div>
+
+<script>
+const data = {
+  web: {
+    title: "Web App Client",
+    type: "Cliente externo",
+    sections: [
+      { title: "Comunicación", items: [
+        { k: "Protocolo", v: "HTTPS TLS 1.3 + WebSocket (wss://)" },
+        { k: "Auth", v: "JWT Bearer via Keycloak OIDC" },
+        { k: "Queue updates", v: "WebSocket desde Virtual Queue Service" },
+      ]},
+      { title: "Decisiones", list: [
+        "SPA React con SSR para SEO de páginas de eventos",
+        "WebSocket mantenido por Spring WebFlux reactive para posición en fila",
+        "Fallback a Long Polling si WebSocket no disponible"
+      ]},
+    ],
+    tradeoff: "SSR agrega complejidad de deploy pero mejora Core Web Vitals y SEO. El trade-off se justifica para páginas de eventos que son indexadas."
+  },
+  cloudarmor: {
+    title: "Cloud Armor / WAF",
+    type: "Edge Security — GCP",
+    sections: [
+      { title: "Capacidades", items: [
+        { k: "DDoS", v: "Adaptive Protection L7 (Cloud Armor)" },
+        { k: "Rate limiting", v: "Por IP, por región, por user-agent" },
+        { k: "OWASP", v: "Reglas preconfiguradas Top 10 (SQLi, XSS)" },
+        { k: "Geo-block", v: "Bloqueo por país si evento es regional" },
+      ]},
+      { title: "Justificación SRE", list: [
+        "Primera línea de defensa antes de llegar al LB",
+        "Absorbe picos de DDoS sin afectar capacidad de GKE",
+        "Integrado con Cloud Logging para análisis forense post-incidente",
+        "SLO: 99.99% availability absorbing 10Gbps attack"
+      ]},
+    ],
+    tradeoff: "Cloud Armor tiene latencia adicional (~1-2ms) pero el beneficio de absorción de ataques lo justifica completamente. Alternativa: Cloudflare — pero Cloud Armor tiene integración nativa con GKE y facturación unificada."
+  },
+  gateway: {
+    title: "Spring Cloud Gateway",
+    type: "API Gateway — GKE",
+    sections: [
+      { title: "Funciones clave", items: [
+        { k: "Rate limiting", v: "Redis-backed por userId + eventId" },
+        { k: "Routing", v: "Path-based hacia microservicios" },
+        { k: "Circuit breaker", v: "Resilience4j integration" },
+        { k: "Canary", v: "Traffic splitting 95/5 para deploys" },
+        { k: "JWT validation", v: "Verificación RS256 con Keycloak JWKS" },
+      ]},
+      { title: "Por qué no Kong/AWS GW", list: [
+        "Spring Cloud Gateway se integra nativamente con Spring ecosystem",
+        "Configuración as-code con Spring Boot, versionable en Git",
+        "WebFlux-based: non-blocking, performance en pico de tráfico",
+        "Menor overhead operacional para equipo Java"
+      ]},
+    ],
+    tradeoff: "Kong tiene más features out-of-the-box (plugin ecosystem). Spring Cloud Gateway requiere más código pero da control total y mejor observabilidad con Micrometer/Prometheus."
+  },
+  queue: {
+    title: "Virtual Queue Service",
+    type: "Microservicio Core — BC: Queue",
+    sections: [
+      { title: "Arquitectura interna", items: [
+        { k: "Storage", v: "Redis Sorted Sets: ZADD queue:{eventId} {ts} {userId}" },
+        { k: "Worker", v: "Pool de workers procesa N usuarios/seg configurable" },
+        { k: "Token", v: "JWT firmado RS256 con claim queue_position + TTL 15min" },
+        { k: "Push", v: "WebSocket reactive (Spring WebFlux) para posición en tiempo real" },
+        { k: "Threads", v: "Virtual Threads Java 21: 5M conexiones @ ~1KB cada una" },
+      ]},
+      { title: "Flujo de pico", list: [
+        "Al abrir venta: 5M usuarios hacen POST /queue/{eventId}/join",
+        "ZADD atómico con timestamp — O(log N) en Redis",
+        "Worker procesa N usuarios/seg hacia Inventory/Reservation",
+        "Usuarios reciben notificación push cuando es su turno",
+        "Token de acceso al checkout expira en 15 minutos"
+      ]},
+    ],
+    tradeoff: "Redis Sorted Set es O(log N) — para 5M usuarios el ordenamiento tarda microsegundos. La alternativa con DB relacional sería catastrófica en pico. Trade-off: Redis es in-memory, si el cluster falla perdemos la fila — mitigado con AOF persistence y replica."
+  },
+  inventory: {
+    title: "Inventory Service",
+    type: "Microservicio Core — BC: Inventory — CRÍTICO ANTI-OVERBOOKING",
+    sections: [
+      { title: "3 capas anti-overbooking", items: [
+        { k: "Capa 1 (Redis)", v: "Lua script atómico: EVAL verifica + reserva en una operación. Race condition imposible." },
+        { k: "Capa 2 (Redlock)", v: "Distributed Lock con Redisson Redlock (N=3 nodos) para reserva de asiento individual." },
+        { k: "Capa 3 (DB)", v: "SELECT FOR UPDATE en PostgreSQL antes de persistir evento SeatReserved." },
+      ]},
+      { title: "Estructuras de datos", list: [
+        "Bitmap por sección: O(1) para verificar disponibilidad de 10k asientos",
+        "BITPOS para encontrar primer asiento disponible: O(N) pero N pequeño",
+        "Event Sourcing: estado = proyección de eventos. SeatReserved + ReservationExpired",
+        "Invariante de dominio: no puede existir 2 SeatReserved activos para mismo seat"
+      ]},
+    ],
+    tradeoff: "Pessimistic locking reduce throughput vs optimistic locking. Decisión CP consciente: preferimos consistencia sobre disponibilidad en esta operación. Para eventos con 50k asientos y 5M usuarios, el lock time es ~2ms — aceptable."
+  },
+  reservation: {
+    title: "Reservation Service",
+    type: "Microservicio Core — BC: Reservation — SAGA + Event Sourcing",
+    sections: [
+      { title: "Event Sourcing", items: [
+        { k: "Eventos", v: "ReservationCreated → TicketPurchased | ReservationExpired | ReservationCancelled" },
+        { k: "Event Store", v: "PostgreSQL tabla events: (id, aggregate_id, type, payload, version, timestamp)" },
+        { k: "TTL", v: "Redis key reservation:{id} con EXPIRE 600 (10 minutos). Listener libera asiento." },
+      ]},
+      { title: "Saga coreografiado", list: [
+        "ReservationCreated → Inventory consume y emite SeatLocked",
+        "SeatLocked → Payment consume y procesa cobro",
+        "PaymentSuccess → Reservation emite TicketPurchased",
+        "PaymentFailed → Reservation emite ReservationCancelled → Inventory libera",
+        "Timeout (10min) → ReservationExpired → Inventory libera automáticamente"
+      ]},
+    ],
+    tradeoff: "Saga coreografiado vs orquestado: el coreografiado tiene menor acoplamiento pero es más difícil de debuggear. Con OpenTelemetry + Kafka tracing el debugging se resuelve. Para este dominio el beneficio de desacoplamiento supera la complejidad."
+  },
+  payment: {
+    title: "Payment Service",
+    type: "Microservicio Core — BC: Payment",
+    sections: [
+      { title: "Patrones implementados", items: [
+        { k: "Idempotency", v: "Header X-Idempotency-Key → tabla PostgreSQL idempotency_keys" },
+        { k: "Circuit Breaker", v: "Resilience4j: abre con 5 fallos en 30s. Fallback a retry queue" },
+        { k: "Retry", v: "Exponential backoff: 1s → 2s → 4s → 8s. Max 4 intentos" },
+        { k: "Fraud", v: "Sync call a AI Service fraud scorer antes de procesar" },
+        { k: "Timeout", v: "TimeLimiter: max 5s para gateway externo" },
+      ]},
+      { title: "Flujo de pago", list: [
+        "1. Verificar Idempotency Key en DB (duplicate check)",
+        "2. Call síncrono a Fraud Detection — score > 0.8 rechaza",
+        "3. POST a gateway externo (Stripe/PayU) con retry",
+        "4. Persistir resultado en DB con Idempotency Key",
+        "5. Emit payment.processed o payment.failed en Kafka"
+      ]},
+    ],
+    tradeoff: "Llamada síncrona a fraud detection agrega latencia (~50ms). La alternativa async tiene riesgo de procesar pagos fraudulentos antes de recibir el score. Para tickets de alta demanda el riesgo de fraude justifica la latencia adicional."
+  },
+  ai: {
+    title: "AI Discovery Service",
+    type: "Microservicio — Spring AI + Vertex AI",
+    sections: [
+      { title: "Capacidades Spring AI", items: [
+        { k: "LLM", v: "spring-ai-vertex-ai-gemini. ChatClient con ChatMemory multi-turn" },
+        { k: "Embeddings", v: "text-embedding-004. Vectorización de eventos al crear/actualizar" },
+        { k: "Vector Store", v: "spring-ai-pgvector-store. Búsqueda por similitud coseno dim=768" },
+        { k: "RAG", v: "QuestionAnswerAdvisor: retrieval de top-5 eventos relevantes como contexto" },
+        { k: "Function Calling", v: "Fraud score function, inventory check function" },
+      ]},
+      { title: "Flujos", list: [
+        "Búsqueda semántica: query → embedding → pgvector similarity search → eventos rankeados",
+        "Chatbot discovery: query → RAG retrieval → Gemini con contexto → respuesta natural",
+        "Fraud scoring: features → Vertex AI custom model endpoint → score 0-1",
+        "Index update: evento creado/modificado → embedding → upsert pgvector"
+      ]},
+    ],
+    tradeoff: "Vertex AI tiene latencia de ~100-200ms para embeddings. Cache de embeddings en Redis para queries recurrentes. El chatbot se activa solo si el usuario lo usa explícitamente — no está en el critical path de reservas."
+  },
+  kafka: {
+    title: "Apache Kafka",
+    type: "Event Backbone — Mensajería central",
+    sections: [
+      { title: "Configuración", items: [
+        { k: "Particionado", v: "Por eventId — garantiza ordenamiento dentro de un evento" },
+        { k: "Replication", v: "Factor 3 (mínimo 2 ISR para writes)" },
+        { k: "Retention", v: "7 días. Compacted para topics de estado de inventario" },
+        { k: "Semántica", v: "Exactly-once con transactional producers en Payment y Reservation" },
+        { k: "Streams", v: "Kafka Streams: tickets vendidos/segundo, revenue en tiempo real" },
+      ]},
+      { title: "Dead Letter Topics", list: [
+        "tickets.reserved.DLT — fallos en procesamiento de reservas",
+        "payment.processed.DLT — fallos en notificación post-pago",
+        "notification.send.DLT — fallos de delivery (reintento manual)",
+        "Alertas Grafana cuando DLT recibe mensajes"
+      ]},
+    ],
+    tradeoff: "Kafka vs GCP Pub/Sub: Kafka da control total sobre particionamiento, retention y consumer groups. Pub/Sub es serverless y más simple. Se usa Kafka para inter-servicios (control + performance) y Pub/Sub para casos específicos de fan-out masivo (notificaciones de apertura de venta)."
+  },
+  redis: {
+    title: "Redis Cluster",
+    type: "Cache + Estructuras de datos — GCP Memorystore",
+    sections: [
+      { title: "Uso por dominio", items: [
+        { k: "Inventory", v: "Bitmap de asientos por sección. BITCOUNT, BITPOS, SETBIT" },
+        { k: "Queue", v: "Sorted Set por eventId. ZADD, ZRANK, ZPOPMIN para posición" },
+        { k: "Sessions", v: "JWT queue tokens con EXPIRE 900 (15min)" },
+        { k: "Rate limiting", v: "INCR + EXPIRE para sliding window por userId" },
+        { k: "Dist. Lock", v: "Redisson Redlock sobre 3 nodos independientes (N=3, quorum=2)" },
+        { k: "Cache-aside", v: "Event Catalog pages. TTL 5 min. Invalidation on write" },
+      ]},
+    ],
+    tradeoff: "Redis es in-memory: si el cluster falla, se pierde estado de fila y caché de disponibilidad. Mitigado con: AOF persistence habilitado, replica sync, y GCP Memorystore SLA 99.9%. El Inventory Service siempre puede fallback a DB (PostgreSQL es source of truth)."
+  },
+  prometheus: {
+    title: "Prometheus + Grafana",
+    type: "Observabilidad — SRE Stack",
+    sections: [
+      { title: "SLOs definidos", items: [
+        { k: "Search p99", v: "< 200ms (99th percentile latencia búsqueda eventos)" },
+        { k: "Checkout p99", v: "< 500ms (99th percentile latencia reserva + pago)" },
+        { k: "Queue join", v: "< 100ms (ACK de entrada a fila virtual)" },
+        { k: "Availability", v: "99.9% mensual (error budget = 43.8 min/mes)" },
+      ]},
+      { title: "Alerting (burn rate)", list: [
+        "Fast burn 1h: consume 2% error budget/hora → PagerDuty P1",
+        "Fast burn 6h: consume 5% error budget/6h → PagerDuty P2",
+        "Slow burn 3d: consume 10% error budget/3d → Ticket P3",
+        "Dashboards separados por: checkout flow, inventory, AI Discovery"
+      ]},
+    ],
+    tradeoff: "Prometheus tiene retention limitada (15 días default). Para análisis histórico largo plazo, exportar a BigQuery via Grafana datasource. Esta es la misma estrategia usada en NFD S.A. con el stack Grafana existente."
+  },
+  gke: {
+    title: "GKE Autopilot",
+    type: "Orquestación de contenedores — GCP",
+    sections: [
+      { title: "Configuración", items: [
+        { k: "Autoscaling", v: "HPA: CPU > 70% → scale up. Custom metric: queue_size" },
+        { k: "Spot nodes", v: "Workers de Notification y Kafka consumers en Spot (50% costo)" },
+        { k: "Multi-zone", v: "us-central1-a/b/c. PodAntiAffinity para distribución" },
+        { k: "Workload Identity", v: "SA de K8s = SA de GCP. Sin service account keys" },
+        { k: "Canary", v: "Istio VirtualService: 95% stable / 5% canary en deploys" },
+      ]},
+    ],
+    tradeoff: "GKE Autopilot vs Standard: Autopilot gestiona node pools automáticamente, reduce overhead operacional. La desventaja es menor control de node customization. Para el Virtual Queue Service (Virtual Threads + alta concurrencia) se puede necesitar n2-highcpu nodes — Autopilot lo maneja con resource requests."
+  },
+  istio: {
+    title: "Istio Service Mesh",
+    type: "Service Mesh — GKE",
+    sections: [
+      { title: "Capacidades", items: [
+        { k: "mTLS", v: "Mutual TLS automático entre todos los servicios. Zero-trust inter-servicio" },
+        { k: "Tracing", v: "Inject W3C TraceContext headers. Exporta a Cloud Trace / Jaeger" },
+        { k: "Traffic", v: "VirtualService + DestinationRule para canary, retry, timeout, CB" },
+        { k: "OPA sidecar", v: "Policy enforcement via Envoy ext_authz filter" },
+      ]},
+    ],
+    tradeoff: "Istio agrega ~5-10ms de latencia por hop por el sidecar Envoy. Este overhead es aceptable dado los beneficios de seguridad (mTLS), observabilidad (tracing automático) y resiliencia (retry/timeout declarativos). La alternativa Linkerd es más liviano pero tiene menos features."
+  }
+};
+
+function showDetail(key) {
+  const d = data[key];
+  if (!d) return;
+  let html = `<div class="detail-title">${d.title}</div><div class="detail-type">${d.type}</div>`;
+  if (d.sections) {
+    d.sections.forEach(s => {
+      html += `<div class="detail-section"><div class="detail-section-title">${s.title}</div>`;
+      if (s.items) {
+        s.items.forEach(item => {
+          html += `<div class="detail-item"><span class="detail-item-key">${item.k}</span><span class="detail-item-val">${item.v}</span></div>`;
+        });
+      }
+      if (s.list) {
+        html += `<ul class="detail-list">`;
+        s.list.forEach(li => { html += `<li>${li}</li>`; });
+        html += `</ul>`;
+      }
+      html += `</div>`;
+    });
+  }
+  if (d.tradeoff) {
+    html += `<div class="tradeoff-box"><div class="tradeoff-title">Trade-off análisis</div><div class="tradeoff-text">${d.tradeoff}</div></div>`;
+  }
+  document.getElementById('panel-content').innerHTML = html;
+  document.getElementById('overlay').classList.add('open');
+}
+
+function closeDetail(e) {
+  if (e.target === document.getElementById('overlay')) closeAll();
+}
+
+function closeAll() {
+  document.getElementById('overlay').classList.remove('open');
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAll(); });
+</script>
+</body>
+</html>
