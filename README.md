@@ -13,7 +13,7 @@
 [![Spring AI](https://img.shields.io/badge/Spring%20AI-1.x-F778BA?style=flat-square&logo=spring&logoColor=white)](https://spring.io/projects/spring-ai)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
 
-**[🌐 Ver landing](https://TU-USUARIO.github.io/ticketstorm/) · [🏗️ System Design](https://TU-USUARIO.github.io/ticketstorm/docs/01_system_design_architecture.html) · [📖 Cuestionario](https://TU-USUARIO.github.io/ticketstorm/docs/06_cuestionario_evaluacion.html) · [🎥 Video](https://youtu.be/TU-VIDEO)**
+**[🌐 Ver landing](https://ingmarma.github.io/ticketstorm/) · [🏗️ System Design](https://ingmarma.github.io/ticketstorm/docs/01_system_design_architecture.html) · [📖 Cuestionario](https://ingmarma.github.io/ticketstorm/docs/06_cuestionario_evaluacion.html)**
 
 </div>
 
