@@ -232,21 +232,18 @@ ticketstorm/
 ## 🚀 Cómo explorar el proyecto
 
 ### Opción 1 — Landing web
-Abrí la [**página del proyecto**](https://TU-USUARIO.github.io/ticketstorm/) para una experiencia de navegación completa entre los 6 entregables.
+Abrí la [**página del proyecto**](https://ingmarma.github.io/ticketstorm/) para una experiencia de navegación completa entre los 6 entregables.
 
 ### Opción 2 — Directo a los HTMLs
 Cada documento es interactivo y auto-contenido:
 
 ```bash
-git clone https://github.com/TU-USUARIO/ticketstorm.git
+git clone https://github.com/ingmarma/ticketstorm.git
 cd ticketstorm
 open docs/01_system_design_architecture.html
 ```
 
-### Opción 3 — Video de justificación
-Ver el [**video de 18 minutos**](https://youtu.be/TU-VIDEO) donde recorro el diseño completo, con foco en las decisiones arquitectónicas clave y el análisis desde la perspectiva del CAP Theorem.
 
----
 
 ## 👤 Autor
 
