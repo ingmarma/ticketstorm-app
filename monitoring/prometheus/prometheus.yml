@@ -1,0 +1,64 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: "event-catalog"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: ["localhost:8081"]
+        labels:
+          service: "event-catalog"
+
+  - job_name: "virtual-queue"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: ["localhost:8082"]
+        labels:
+          service: "virtual-queue"
+
+  - job_name: "inventory"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: ["localhost:8083"]
+        labels:
+          service: "inventory"
+
+  - job_name: "reservation"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: ["localhost:8084"]
+        labels:
+          service: "reservation"
+
+  - job_name: "payment"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: ["localhost:8085"]
+        labels:
+          service: "payment"
+
+  - job_name: "notification"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: ["localhost:8086"]
+        labels:
+          service: "notification"
+
+  - job_name: "ai-discovery"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: ["localhost:8087"]
+        labels:
+          service: "ai-discovery"
+
+  - job_name: "api-gateway"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: ["localhost:8080"]
+        labels:
+          service: "api-gateway"

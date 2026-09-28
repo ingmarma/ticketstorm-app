@@ -1,0 +1,26 @@
+spring:
+  ai:
+    model:
+      chat: bedrock-converse
+      embedding: bedrock-titan
+    bedrock:
+      aws:
+        region: ${AWS_REGION:us-east-1}
+      converse:
+        chat:
+          options:
+            model: anthropic.claude-3-5-sonnet-20241022-v2:0
+            temperature: 0.3
+            max-tokens: 1024
+      titan:
+        embedding:
+          model: amazon.titan-embed-text-v2:0
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+logging:
+  level:
+    com.ticketstorm.ai: INFO
+    org.springframework.ai: INFO

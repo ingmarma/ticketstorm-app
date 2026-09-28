@@ -1,0 +1,126 @@
+@import "tailwindcss";
+
+@theme {
+  --color-navy-50: #e6eaf0;
+  --color-navy-100: #c0c9d9;
+  --color-navy-200: #96a6bf;
+  --color-navy-300: #6b82a5;
+  --color-navy-400: #4b6691;
+  --color-navy-500: #2c4b7d;
+  --color-navy-600: #264475;
+  --color-navy-700: #1f3b6b;
+  --color-navy-800: #173161;
+  --color-navy-900: #0D1B2A;
+  --color-navy-950: #080f18;
+
+  --color-aws-orange: #FF9900;
+  --color-aws-orange-dark: #CC7A00;
+  --color-aws-orange-light: #FFB84D;
+
+  --color-success: #22C55E;
+  --color-danger: #EF4444;
+  --color-warning: #F59E0B;
+  --color-info: #3B82F6;
+}
+
+@layer base {
+  :root {
+    --background: #ffffff;
+    --foreground: #0D1B2A;
+    --card: #ffffff;
+    --card-foreground: #0D1B2A;
+    --primary: #FF9900;
+    --primary-foreground: #0D1B2A;
+    --secondary: #f5f5f5;
+    --secondary-foreground: #0D1B2A;
+    --muted: #f5f5f5;
+    --muted-foreground: #737373;
+    --accent: #f5f5f5;
+    --accent-foreground: #0D1B2A;
+    --destructive: #EF4444;
+    --destructive-foreground: #ffffff;
+    --border: #e5e5e5;
+    --input: #e5e5e5;
+    --ring: #FF9900;
+  }
+
+  .dark {
+    --background: #0D1B2A;
+    --foreground: #e6eaf0;
+    --card: #173161;
+    --card-foreground: #e6eaf0;
+    --primary: #FF9900;
+    --primary-foreground: #0D1B2A;
+    --secondary: #1a2a44;
+    --secondary-foreground: #e6eaf0;
+    --muted: #1a2a44;
+    --muted-foreground: #96a6bf;
+    --accent: #1a2a44;
+    --accent-foreground: #e6eaf0;
+    --destructive: #EF4444;
+    --destructive-foreground: #ffffff;
+    --border: #2c4b7d;
+    --input: #2c4b7d;
+    --ring: #FF9900;
+  }
+
+  * {
+    border-color: var(--border);
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+}
+
+@layer utilities {
+  .animate-pulse-slow {
+    animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+
+  .animate-countdown {
+    animation: countdown 600s linear infinite;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes countdown {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--muted);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--muted-foreground);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}

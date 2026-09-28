@@ -1,0 +1,70 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: ai-discovery-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://postgres:5432/ticketstorm}
+    username: ${SPRING_DATASOURCE_USERNAME:ticketstorm}
+    password: ${SPRING_DATASOURCE_PASSWORD:ticketstorm}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-init-sql: CREATE EXTENSION IF NOT EXISTS vector
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+
+  ai:
+    retry:
+      max-attempts: 3
+      backoff:
+        initial-interval: 1s
+        multiplier: 2
+        max-interval: 3s
+    model:
+      chat: ollama
+      embedding: ollama
+    ollama:
+      base-url: ${SPRING_AI_OLLAMA_BASE_URL:http://ollama:11434}
+      chat:
+        model: llama3.2
+      embedding:
+        model: nomic-embed-text
+    vectorstore:
+      pgvector:
+        dimensions: 768
+        index-type: HNSW
+        initialize-schema: true
+
+event-catalog:
+  base-url: ${EVENT_CATALOG_URL:http://event-catalog:8080}
+  connect-timeout-ms: 5000
+  read-timeout-ms: 15000
+  index-max-attempts: 60
+  index-retry-delay-ms: 10000
+  reindex-interval-ms: 600000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: ai-discovery-service
+
+logging:
+  level:
+    com.ticketstorm.ai: INFO
+    org.springframework.ai: INFO

@@ -1,0 +1,14 @@
+version: "3.9"
+
+services:
+  ollama:
+    profiles:
+      - never
+
+  ollama-init:
+    profiles:
+      - never
+
+  ai-discovery:
+    environment:
+      SPRING_PROFILES_ACTIVE: aws

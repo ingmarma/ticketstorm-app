@@ -1,0 +1,21 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/ticketstorm}
+    username: ${SPRING_DATASOURCE_USERNAME:ticketstorm}
+    password: ${SPRING_DATASOURCE_PASSWORD:ticketstorm}
+
+  ai:
+    ollama:
+      base-url: ${SPRING_AI_OLLAMA_BASE_URL:http://localhost:11434}
+      chat:
+        model: llama3.2
+      embedding:
+        model: nomic-embed-text
+
+event-catalog:
+  base-url: ${EVENT_CATALOG_URL:http://localhost:8081}
+
+logging:
+  level:
+    com.ticketstorm.ai: DEBUG
+    org.springframework.ai: DEBUG
