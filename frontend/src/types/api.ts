@@ -110,9 +110,18 @@ export interface ChatConversation {
   updatedAt: string
 }
 
+export interface ChatAction {
+  type: 'VIEW_EVENT' | 'VIEW_SECTIONS' | 'BUY'
+  eventId: string
+  sectionId: string | null
+  quantity: number | null
+}
+
 export interface ChatResponse {
   response: string
   events: Event[]
+  sections: TicketSection[]
+  action: ChatAction | null
   sessionId: string
 }
 

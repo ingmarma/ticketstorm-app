@@ -3,7 +3,7 @@ package com.ticketstorm.ai.application.dto;
 import java.math.BigDecimal;
 import java.time.Instant;
 
-public record Event(
+public record EventDto(
         String id,
         String name,
         String description,

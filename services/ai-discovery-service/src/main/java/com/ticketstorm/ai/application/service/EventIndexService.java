@@ -1,6 +1,6 @@
 package com.ticketstorm.ai.application.service;
 
-import com.ticketstorm.ai.application.dto.Event;
+import com.ticketstorm.ai.application.dto.EventDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.document.Document;
@@ -35,7 +35,7 @@ public class EventIndexService {
     private final VectorStore vectorStore;
     private final int maxIndexAttempts;
     private final long indexRetryDelayMs;
-    private final Map<String, Event> eventRegistry = new ConcurrentHashMap<>();
+    private final Map<String, EventDto> eventRegistry = new ConcurrentHashMap<>();
     private final ExecutorService executor = Executors.newSingleThreadExecutor(runnable -> {
         Thread thread = new Thread(runnable, "event-indexer");
         thread.setDaemon(true);
@@ -110,14 +110,14 @@ public class EventIndexService {
     }
 
     public void index() {
-        List<Event> events = restClient.get()
+        List<EventDto> events = restClient.get()
                 .uri(EVENTS_PATH)
                 .retrieve()
-                .body(new ParameterizedTypeReference<List<Event>>() {});
+                .body(new ParameterizedTypeReference<List<EventDto>>() {});
 
         synchronized (indexLock) {
             List<Document> documents = new ArrayList<>();
-            for (Event event : events == null ? List.<Event>of() : events) {
+            for (EventDto event : events == null ? List.<EventDto>of() : events) {
                 if (event == null || event.id() == null) {
                     continue;
                 }
@@ -139,14 +139,14 @@ public class EventIndexService {
         return indexed;
     }
 
-    public Optional<Event> findById(String eventId) {
+    public Optional<EventDto> findById(String eventId) {
         if (eventId == null) {
             return Optional.empty();
         }
         return Optional.ofNullable(eventRegistry.get(eventId));
     }
 
-    public List<Event> all() {
+    public List<EventDto> all() {
         return List.copyOf(eventRegistry.values());
     }
 
@@ -154,14 +154,14 @@ public class EventIndexService {
         return eventRegistry.size();
     }
 
-    public Event toEvent(Document document) {
-        Event cached = eventRegistry.get(document.getId());
+    public EventDto toEvent(Document document) {
+        EventDto cached = eventRegistry.get(document.getId());
         if (cached != null) {
             return cached;
         }
         Map<String, Object> metadata = document.getMetadata() == null ? Map.of() : document.getMetadata();
         BigDecimal minPrice = toBigDecimal(metadata.get("minPrice"));
-        return new Event(
+        return new EventDto(
                 document.getId(),
                 text(metadata.get("name")),
                 document.getText(),
@@ -179,7 +179,7 @@ public class EventIndexService {
         );
     }
 
-    private Document toDocument(Event event) {
+    private Document toDocument(EventDto event) {
         return Document.builder()
                 .id(event.id())
                 .text(buildDocumentText(event))
@@ -196,7 +196,7 @@ public class EventIndexService {
                 .build();
     }
 
-    private String buildDocumentText(Event event) {
+    private String buildDocumentText(EventDto event) {
         StringBuilder text = new StringBuilder(event.name() == null ? "" : event.name());
         if (event.description() != null && !event.description().isBlank()) {
             text.append(". ").append(event.description());

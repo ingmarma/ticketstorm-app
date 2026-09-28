@@ -7,6 +7,7 @@ interface ChatInputProps {
   disabled?: boolean
   placeholder?: string
   className?: string
+  prefill?: { text: string; id: number } | null
 }
 
 export function ChatInput({
@@ -14,9 +15,22 @@ export function ChatInput({
   disabled = false,
   placeholder = 'Ask about events, tickets, or venues...',
   className,
+  prefill,
 }: ChatInputProps) {
   const [message, setMessage] = React.useState('')
   const textareaRef = React.useRef<HTMLTextAreaElement>(null)
+
+  React.useEffect(() => {
+    if (!prefill) return
+    setMessage(prefill.text)
+    requestAnimationFrame(() => {
+      const el = textareaRef.current
+      if (!el) return
+      el.focus()
+      el.style.height = 'auto'
+      el.style.height = `${Math.min(el.scrollHeight, 120)}px`
+    })
+  }, [prefill])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()

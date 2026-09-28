@@ -19,7 +19,7 @@ export function EventDetailPage() {
   const [quantity, setQuantity] = React.useState(1)
 
   const { data: event, isLoading: isEventLoading } = useEvent(id!)
-  const { joinQueue, isJoining, isWaiting } = useQueue(id!)
+  const { isWaiting } = useQueue(id!)
 
   const handleBuy = () => {
     if (!selectedSection || !event) return
@@ -28,7 +28,11 @@ export function EventDetailPage() {
   }
 
   const handleJoinQueue = () => {
-    joinQueue()
+    window.dispatchEvent(
+      new CustomEvent('open-chat', {
+        detail: { message: `Quiero comprar entradas para ${event?.name ?? ''}`.trim() },
+      })
+    )
   }
 
   const sortedSections = React.useMemo(() => {
@@ -320,8 +324,8 @@ export function EventDetailPage() {
                   Comprar Ahora - {formatGuarani(selectedSection.price * quantity)}
                 </Button>
               ) : (
-                <Button onClick={handleJoinQueue} variant="secondary" className="w-full" size="lg" disabled={isJoining}>
-                  {isJoining ? 'Uniéndose...' : 'Unirse a la Cola'}
+                <Button onClick={handleJoinQueue} variant="secondary" className="w-full" size="lg">
+                  Comprar con AI Assistant
                 </Button>
               )}
             </CardContent>

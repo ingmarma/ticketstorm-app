@@ -21,7 +21,11 @@ export function useChat() {
           role: 'assistant',
           content: data.response,
           timestamp: new Date().toISOString(),
-          metadata: { events: data.events ?? [] },
+          metadata: {
+            events: data.events ?? [],
+            sections: data.sections ?? [],
+            action: data.action ?? null,
+          },
         },
       ])
     },

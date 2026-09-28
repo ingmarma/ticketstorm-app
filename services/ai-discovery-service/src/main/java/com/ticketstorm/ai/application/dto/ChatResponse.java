@@ -4,6 +4,8 @@ import java.util.List;
 
 public record ChatResponse(
         String response,
-        List<Event> events,
+        List<EventDto> events,
+        List<TicketSectionDto> sections,
+        ChatAction action,
         String sessionId
 ) {}
