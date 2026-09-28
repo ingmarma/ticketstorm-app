@@ -24,7 +24,13 @@ export function EventDetailPage() {
   const handleBuy = () => {
     if (!selectedSection || !event) return
     addToCart(event, [])
-    navigate(`/checkout/${event.id}`)
+    const params = new URLSearchParams({
+      event: event.name,
+      section: selectedSection.name,
+      quantity: String(quantity),
+      price: String(selectedSection.price * quantity),
+    })
+    navigate(`/checkout/${event.id}?${params.toString()}`)
   }
 
   const handleJoinQueue = () => {
