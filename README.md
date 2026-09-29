@@ -1,215 +1,281 @@
 # TicketStorm
 
-**High-performance ticket reservation system designed for 50M+ DAU.**
+**Sistema de reserva de entradas de alto rendimiento diseñado para 50M+ DAU con cero sobreventa.**
 
-TicketStorm is an event ticketing platform built for the Paraguayan market, capable of handling massive flash-sale scenarios with sub-second response times. It supports semantic event search via vector embeddings, real-time inventory management, and concurrent reservation handling with optimistic locking.
+TicketStorm es una plataforma de ticketing para eventos construida con microservicios en Java 25 y Spring Boot 4.1. Integra búsqueda semántica con Spring AI, gestión de inventario en tiempo real con Redis, y procesamiento de reservas concurrentes con cuatro capas anti-sobreventa. Diseñada para el mercado paraguayo con precios en Guaraníes (₲).
 
----
-
-## Architecture
-
-```
-                         ┌─────────────────────┐
-                         │      CloudFront      │
-                         │     (CDN / WAF)      │
-                         └──────────┬───────────┘
-                                    │
-                         ┌──────────▼───────────┐
-                         │     API Gateway       │
-                         │   (Spring Cloud GW)   │
-                         └──────────┬───────────┘
-                                    │
-                ┌───────────────────┼───────────────────┐
-                │                   │                   │
-     ┌──────────▼────────┐ ┌───────▼────────┐ ┌───────▼────────┐
-     │   Event Service   │ │Reservation Svc │ │  User Service  │
-     │  (Java / Spring)  │ │ (Java / Spring)│ │ (Java / Spring)│
-     └────────┬──────────┘ └───────┬────────┘ └───────┬────────┘
-              │                    │                   │
-     ┌────────▼──────────┐        │          ┌───────▼────────┐
-     │   PostgreSQL       │◄───────┘          │   PostgreSQL    │
-     │   (RDS / pgvector) │                  │   (RDS)         │
-     └────────┬──────────┘                  └────────────────┘
-              │
-     ┌────────▼──────────┐
-     │   Ollama / Bedrock │
-     │  (Embeddings)      │
-     └───────────────────┘
-```
-
-**Key Design Decisions:**
-- Microservices architecture with independently scalable services
-- PostgreSQL with pgvector for hybrid relational + vector search
-- Optimistic locking (`version` column) for concurrent ticket reservations
-- Spring Boot 4.x on Java 25 with virtual threads (Project Loom)
-- Event-driven architecture with Kafka for reservation state propagation
+> Presentado en [AWS Community Day Paraguay 2026](https://awscommunitydaypyco.com) — *"Spring AI + AWS Bedrock: Integrando Modelos de Lenguaje en Microservicios Java en Producción"*
 
 ---
 
-## Prerequisites
+## Arquitectura
 
-| Tool | Version | Purpose |
-|------|---------|---------|
-| Java | 25+ | Application runtime |
-| Maven | 3.9+ | Build tool |
-| Docker | 24+ | Containerization |
-| Docker Compose | 2.20+ | Local orchestration |
-| PostgreSQL client | 16+ | Database (via Docker) |
-| Python | 3.11+ | Embedding scripts |
-| AWS CLI | v2 | AWS deployment (optional) |
-| Terraform | 1.5+ | IaC (optional) |
-| kubectl | 1.30+ | Kubernetes (optional) |
+```
+                    ┌──────────────────────────┐
+                    │     React 19 + Vite 6     │
+                    │   (TanStack Query, Zustand)│
+                    └────────────┬──────────────┘
+                                 │
+              ┌──────────────────┼──────────────────┐
+              │                  │                   │
+   ┌──────────▼────────┐ ┌──────▼───────┐ ┌────────▼────────┐
+   │  Event Catalog    │ │ AI Discovery │ │  Virtual Queue  │
+   │    (port 8081)    │ │  (port 8087) │ │   (port 8083)   │
+   └──────────┬────────┘ └──────┬───────┘ └────────┬────────┘
+              │                 │                   │
+   ┌──────────▼────────┐ ┌─────▼────────┐ ┌───────▼─────────┐
+   │    Inventory      │ │  Reservation │ │     Payment     │
+   │    (port 8082)    │ │  (port 8084) │ │   (port 8085)   │
+   └──────────┬────────┘ └──────┬───────┘ └────────┬────────┘
+              │                 │                   │
+              │          ┌──────▼───────┐           │
+              │          │ Notification │           │
+              │          │  (port 8086) │           │
+              │          └──────────────┘           │
+              │                                     │
+   ┌──────────▼──────────────────────────────────────▼──────┐
+   │                    Infrastructure                      │
+   │  PostgreSQL (pgvector) · Redis · Kafka · Ollama/Bedrock│
+   │  Prometheus · Grafana                                  │
+   └────────────────────────────────────────────────────────┘
+```
+
+### 7 Microservicios con DDD Bounded Contexts
+
+| Servicio | Puerto | Responsabilidad |
+|----------|--------|-----------------|
+| **Event Catalog** | 8081 | CRUD de eventos, búsqueda, secciones de tickets |
+| **Inventory** | 8082 | Stock atómico, reserva de asientos, control de disponibilidad |
+| **Virtual Queue** | 8083 | Cola virtual con Redis Sorted Set + WebSocket |
+| **Reservation** | 8084 | Orquestación de reservas, Saga pattern |
+| **Payment** | 8085 | Procesamiento de pagos (simulado para demo) |
+| **Notification** | 8086 | Notificaciones por email/push vía Kafka |
+| **AI Discovery** | 8087 | Chatbot RAG con Spring AI, búsqueda semántica |
+
+### Patrones de Diseño
+
+- **CQRS + Event Sourcing** — separación de comandos y consultas
+- **Choreographed Saga** sobre Kafka + Outbox Pattern
+- **Anti-sobreventa en 4 capas**: Lua atómico → Redisson Redlock → `SELECT FOR UPDATE` → `UNIQUE` constraint
+- **Virtual Queue**: Redis Sorted Set O(log N) + WebSocket + Virtual Threads
 
 ---
 
-## Quick Start
+## AI Discovery — Spring AI + RAG
 
-```bash
-# Clone and start everything
-git clone https://github.com/your-org/ticketstorm.git
-cd ticketstorm
+El servicio estrella del proyecto. Implementa un chatbot con Retrieval-Augmented Generation:
 
-# Start infrastructure + application
-docker compose up -d
+- **Spring AI 2.0 GA** con `ChatClient` + vector store
+- **RAG Pipeline**: indexa eventos desde Event Catalog → embeddings en pgvector → búsqueda semántica
+- **ChatIntentResolver**: detección determinística de intents (BUY, VIEW_SECTIONS, VIEW_EVENT) con matching accent-insensitive
+- **Modelos**: Ollama (local) con `llama3.2` para chat y `nomic-embed-text` para embeddings, migrable a AWS Bedrock
 
-# Wait for health checks
-docker compose ps
-
-# Seed the database
-docker compose exec api psql -U ticketstorm -d ticketstorm -f /app/seed-data.sql
-
-# Access the API
-curl http://localhost:8080/api/events
 ```
-
-### Using Make
-
-```bash
-make setup          # Build all services
-make up             # Start docker compose
-make down           # Stop everything
-make test           # Run all tests
-make seed           # Load seed data
-make seed-embed     # Generate embeddings
-```
-
----
-
-## Running Tests
-
-```bash
-# Unit tests (per service)
-cd services/event-service
-mvn test
-
-# Integration tests (requires Docker)
-cd services/event-service
-mvn verify -Pintegration
-
-# All tests across all services
-mvn test -pl services/*
-
-# Load tests (requires k6)
-k6 run tests/load/flash-sale.js
+Usuario: "¿Qué conciertos hay en noviembre?"
+    ↓
+ChatIntentResolver → detecta intent VIEW_EVENT
+    ↓
+VectorStore.similaritySearch() → busca en pgvector
+    ↓
+ChatClient.prompt() → genera respuesta con contexto RAG
+    ↓
+ChatResponse { events, sections, action, sessionId }
 ```
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|------------|
-| Language | Java 25 |
-| Framework | Spring Boot 4.x |
-| Build | Maven |
-| API | REST + WebSocket |
-| Database | PostgreSQL 16 + pgvector |
-| Vector Search | pgvector / Ollama / Bedrock |
-| Cache | Redis Cluster |
-| Messaging | Apache Kafka |
-| Container | Docker |
-| Orchestration | Kubernetes (EKS) |
+| Capa | Tecnología |
+|------|------------|
+| Lenguaje | Java 25 (Virtual Threads) |
+| Framework | Spring Boot 4.1.0 + Spring AI 2.0.1 |
+| Frontend | React 19, Vite 6, TanStack Query v5, Zustand v5, Tailwind CSS v4 |
+| Base de datos | PostgreSQL 16 + pgvector |
+| Cache | Redis 7 |
+| Mensajería | Apache Kafka 3.8 (KRaft mode) |
+| AI/ML | Ollama (local) / AWS Bedrock (producción) |
+| Monitoreo | Prometheus + Grafana (3 dashboards pre-provisioned) |
+| Contenedores | Docker + Docker Compose |
+| Orquestación | Kubernetes (EKS) |
 | IaC | Terraform |
-| Monitoring | Prometheus + Grafana |
 | CI/CD | GitHub Actions |
 
 ---
 
-## AWS Deployment
+## Inicio Rápido
 
-### Prerequisites
+### Prerrequisitos
+
+- Java 25+ (recomendado via [SDKMAN](https://sdkman.io/))
+- Maven 3.9+
+- Docker 24+ con Docker Compose v2
+- Node.js 20+ con npm
+
+### Levantar todo
+
 ```bash
-aws configure                    # Set credentials
-aws eks get-token --name ticketstorm  # Verify EKS access
+# Clonar
+git clone https://github.com/ingmarma/ticketstorm-app.git
+cd ticketstorm-app
+
+# Compilar los 7 servicios
+mvn package -DskipTests -q
+
+# Levantar infraestructura + servicios
+docker compose up -d
+
+# Verificar que todo esté healthy
+docker compose ps
+
+# Seed de datos (5 eventos + 35 secciones)
+docker compose exec postgres psql -U ticketstorm -d ticketstorm -f /docker-entrypoint-initdb.d/seed-events.sql
+docker compose exec postgres psql -U ticketstorm -d ticketstorm -f /docker-entrypoint-initdb.d/seed-sections.sql
 ```
 
-### Deploy
+### Con Ollama (chatbot AI)
+
 ```bash
-# Provision infrastructure + deploy + seed
-./scripts/aws-up.sh
+# Levantar con el profile de Ollama
+docker compose --profile ollama up -d
+
+# Primera vez: Ollama descarga los modelos (~2GB)
+# Verificar que AI Discovery esté healthy
+curl http://localhost:8087/actuator/health
 ```
 
-The script will:
-1. Initialize and apply Terraform (EKS, RDS, VPC, IAM)
-2. Configure kubectl for the EKS cluster
-3. Deploy all Kubernetes manifests via kustomize
-4. Wait for pods to become ready
-5. Load seed data into RDS and generate embeddings via Bedrock
+### Acceder
 
-### Tear Down
-```bash
-./scripts/aws-down.sh
-```
-
-Requires typing `destroy` to confirm — this is irreversible.
+| Servicio | URL |
+|----------|-----|
+| Frontend | http://localhost:5173 |
+| Grafana | http://localhost:3001 (admin/admin) |
+| Prometheus | http://localhost:9090 |
+| API Eventos | http://localhost:8081/api/v1/events |
+| AI Chat | http://localhost:8087/api/v1/chat |
 
 ---
 
 ## API Endpoints
 
+### Event Catalog (8081)
 ```
-GET    /api/events              List events (paginated, filterable)
-GET    /api/events/{id}         Get event details with sections
-GET    /api/events/search?q=    Semantic search (vector embeddings)
-POST   /api/reservations        Create reservation
-GET    /api/reservations/{id}   Get reservation status
-DELETE /api/reservations/{id}   Cancel reservation
-POST   /api/v1/chat             AI assistant chat (RAG over indexed events)
-GET    /api/v1/chat/suggestions Suggested questions for the AI assistant
-GET    /api/health              Health check
-GET    /api/metrics             Prometheus metrics
+GET    /api/v1/events                  Listar eventos (paginado)
+GET    /api/v1/events/{id}             Detalle de evento
+GET    /api/v1/events/{id}/sections    Secciones de tickets
+GET    /api/v1/events/search?q=        Búsqueda por texto
 ```
 
-The AI assistant runs in `ai-discovery-service` on port **8087** (`/actuator/health`,
-`/api/v1/chat`, `/api/v1/chat/suggestions`). It indexes events from `event-catalog`
-into pgvector at startup and re-indexes every 10 minutes. Models are served by the
-`ollama` container and pulled on first boot by `ollama-init`
-(`llama3.2` for chat, `nomic-embed-text` for embeddings).
+### AI Discovery (8087)
+```
+POST   /api/v1/chat                    Chat con el asistente AI (RAG)
+GET    /api/v1/chat/suggestions        Preguntas sugeridas
+GET    /actuator/health                Health check
+GET    /actuator/prometheus            Métricas Prometheus
+```
 
 ---
 
-## Seed Data
+## Datos de Ejemplo
 
-The seed scripts populate the database with:
+5 eventos reales del mercado paraguayo con 35 secciones de tickets:
 
-- **10 venues** across Asunción, Paraguay
-- **20 events** (concerts, theater, sports, festivals) — Oct/Dec 2026
-- **~70 ticket sections** with Guaraní (₲) pricing
-- **Realistic scarcity** — some events at 95-98% sold out
-- **3 demo users** (admin, regular, VIP)
-- **Semantic embeddings** via Ollama (local) or Bedrock (AWS)
-
-### Prices (Guaraníes)
-| Section | Price Range |
-|---------|-------------|
-| VIP | ₲350,000 – ₲500,000 |
-| Platea A | ₲180,000 – ₲250,000 |
-| Platea B | ₲120,000 – ₲150,000 |
-| General | ₲50,000 – ₲100,000 |
-| Palcos | ₲350,000 – ₲500,000 |
+| Evento | Venue | Capacidad | Precio desde |
+|--------|-------|-----------|-------------|
+| Coldplay - Music of the Spheres | Estadio Defensores del Chaco | 42,000 | ₲120.000 |
+| Bad Bunny - Most Wanted Tour | Arena Vila Morra | 8,500 | ₲120.000 |
+| Paraguay vs Argentina - Eliminatorias | Estadio Defensores del Chaco | 42,000 | ₲100.000 |
+| Romeo Santos - Formula Vol. 3 | Centro de Exposiciones | 12,000 | ₲250.000 |
+| Festival Asunciónico 2026 | Jockey Club Paraguay | 5,000 | ₲200.000 |
 
 ---
 
-## License
+## Monitoreo — Grafana Dashboards
 
-MIT License. See [LICENSE](LICENSE) for details.
+3 dashboards pre-provisioned en la carpeta "TicketStorm":
+
+1. **Overview** — health de los 7 servicios, request rate, P99 latency, error rate, JVM memory
+2. **AI Discovery** — métricas del chatbot, Spring AI latency, RAG pipeline, token usage
+3. **Queue & Reservations** — cola virtual, pipeline de reservas, métricas de Redis/Kafka
+
+---
+
+## Despliegue en AWS
+
+### Arquitectura Cloud
+
+| Servicio AWS | Uso |
+|-------------|-----|
+| EKS (Kubernetes) | Orquestación de los 7 microservicios |
+| RDS PostgreSQL | Base de datos con pgvector |
+| ElastiCache Redis | Cache + cola virtual |
+| MSK (Kafka) | Event streaming |
+| Bedrock | Modelos de lenguaje (reemplaza Ollama) |
+| ECR | Registro de imágenes Docker |
+| CloudFront | CDN para el frontend |
+
+### Deploy
+
+```bash
+# Provisionar infraestructura
+cd terraform
+terraform init && terraform apply
+
+# Desplegar servicios
+./scripts/aws-up.sh
+
+# Destruir (confirmar con "destroy")
+./scripts/aws-down.sh
+```
+
+---
+
+## Estructura del Proyecto
+
+```
+ticketstorm/
+├── frontend/                    # React 19 + Vite 6
+│   └── src/
+│       ├── features/            # Páginas por feature
+│       │   ├── events/          # EventListPage, EventDetailPage
+│       │   ├── chat/            # ChatPanel (AI Assistant)
+│       │   ├── checkout/        # CheckoutPage (pago simulado)
+│       │   ├── queue/           # QueuePage
+│       │   └── admin/           # AdminDashboard
+│       ├── components/          # Componentes compartidos
+│       ├── hooks/               # Custom hooks (useEventSearch, useQueue)
+│       ├── services/            # API client
+│       ├── store/               # Zustand store
+│       └── types/               # TypeScript types
+├── services/
+│   ├── common-lib/              # DTOs, excepciones, utilidades compartidas
+│   ├── event-lib/               # Modelos de dominio de eventos
+│   ├── test-lib/                # Utilidades de testing
+│   ├── event-catalog-service/   # Catálogo de eventos + búsqueda
+│   ├── inventory-service/       # Control de stock atómico
+│   ├── virtual-queue-service/   # Cola virtual Redis + WebSocket
+│   ├── reservation-service/     # Orquestación de reservas
+│   ├── payment-service/         # Procesamiento de pagos
+│   ├── notification-service/    # Notificaciones async
+│   └── ai-discovery-service/    # Chatbot RAG con Spring AI
+├── infrastructure/
+│   ├── prometheus/              # Configuración Prometheus
+│   └── grafana/                 # Dashboards + provisioning
+├── scripts/                     # SQL seeds, deploy scripts
+├── docker-compose.yml           # Orquestación local
+└── pom.xml                      # Parent POM (Maven multi-module)
+```
+
+---
+
+## Autor
+
+**Matías Martínez** — SRE & Backend Engineer
+
+- GitHub: [@ingmarma](https://github.com/ingmarma)
+
+---
+
+## Licencia
+
+MIT License. Ver [LICENSE](LICENSE) para detalles.
