@@ -51,8 +51,8 @@ export const eventsApi = {
     return data
   },
 
-  searchEvents: async (query: string, params?: SearchParams): Promise<PaginatedResponse<Event>> => {
-    const { data } = await api.get('/events/search', {
+  searchEvents: async (query: string, params?: SearchParams): Promise<Event[]> => {
+    const { data } = await api.get<Event[]>('/events/search', {
       params: { query, ...params },
     })
     return data

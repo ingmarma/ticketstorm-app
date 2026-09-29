@@ -5,13 +5,11 @@ import { PageContainer } from '@/components/layout/PageContainer'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { QueueIndicator } from '@/components/shared/QueueIndicator'
-import { useStore } from '@/store/useStore'
 
 export function QueuePage() {
   const { eventId } = useParams<{ eventId: string }>()
   const navigate = useNavigate()
-  const { position, isWaiting, leaveQueue } = useQueue(eventId!)
-  const { cart } = useStore((state) => state)
+  const { position, leaveQueue } = useQueue(eventId!)
 
   React.useEffect(() => {
     if (position?.status === 'IN_PROGRESS') {

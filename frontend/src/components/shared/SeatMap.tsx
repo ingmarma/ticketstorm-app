@@ -26,10 +26,12 @@ const statusStyles: Record<string, string> = {
 export function SeatMap({ seats, selectedSeats, onSeatSelect, className }: SeatMapProps) {
   const sections = React.useMemo(() => {
     const grouped = seats.reduce((acc, seat) => {
-      if (!acc[seat.section]) {
-        acc[seat.section] = []
+      const bucket = acc[seat.section]
+      if (bucket) {
+        bucket.push(seat)
+      } else {
+        acc[seat.section] = [seat]
       }
-      acc[seat.section].push(seat)
       return acc
     }, {} as Record<string, Seat[]>)
 
@@ -93,8 +95,8 @@ export function SeatMap({ seats, selectedSeats, onSeatSelect, className }: SeatM
                     disabled={seat.status !== 'AVAILABLE'}
                     className={cn(
                       'h-10 w-10 rounded-lg border-2 transition-all duration-200 text-xs font-medium',
-                      sectionColors[seat.type] || sectionColors.STANDARD,
-                      statusStyles[seat.status],
+                      sectionColors[seat.type ?? ''] || sectionColors.STANDARD,
+                      statusStyles[seat.status ?? ''],
                       isSelected(seat) && 'bg-aws-orange text-navy-900 border-aws-orange scale-110 ring-2 ring-aws-orange/50',
                       seat.wheelchairAccessible && 'ring-2 ring-blue-400'
                     )}

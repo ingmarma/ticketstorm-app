@@ -1,4 +1,3 @@
-import * as React from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { adminApi } from '@/services/api'
 import { PageContainer } from '@/components/layout/PageContainer'

@@ -1,4 +1,3 @@
-import * as React from 'react'
 import { Link } from 'react-router-dom'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
