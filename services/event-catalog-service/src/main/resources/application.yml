@@ -53,6 +53,8 @@ management:
       exposure:
         include: health,info,prometheus,metrics
   metrics:
+    tags:
+      application: ${spring.application.name}
     export:
       prometheus:
         enabled: true

@@ -62,7 +62,7 @@ management:
       prometheus:
         enabled: true
     tags:
-      application: inventory-service
+      application: ${spring.application.name}
 
 logging:
   level:

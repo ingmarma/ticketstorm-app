@@ -57,4 +57,4 @@ management:
       prometheus:
         enabled: true
     tags:
-      application: reservation-service
+      application: ${spring.application.name}

@@ -56,13 +56,16 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,prometheus
+        include: health,info,prometheus,metrics
   endpoint:
     health:
       show-details: always
   metrics:
     tags:
-      application: ai-discovery-service
+      application: ${spring.application.name}
+    export:
+      prometheus:
+        enabled: true
 
 logging:
   level:

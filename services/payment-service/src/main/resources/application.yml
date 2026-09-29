@@ -52,4 +52,4 @@ management:
       prometheus:
         enabled: true
     tags:
-      application: payment-service
+      application: ${spring.application.name}
