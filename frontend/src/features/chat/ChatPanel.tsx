@@ -203,7 +203,7 @@ export function ChatPanel() {
       )}
 
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex animate-slide-up flex-col overflow-hidden bg-card shadow-2xl md:inset-auto md:bottom-24 md:right-6 md:h-auto md:max-h-[600px] md:min-h-[24rem] md:w-[400px] md:max-w-[400px] md:rounded-2xl md:border md:border-border">
+        <div className="fixed inset-0 z-[100] flex animate-slide-up flex-col overflow-hidden bg-[var(--card)] shadow-2xl ring-1 ring-white/10 md:inset-auto md:bottom-24 md:right-6 md:h-auto md:max-h-[600px] md:min-h-[24rem] md:w-[400px] md:max-w-[400px] md:rounded-2xl md:border md:border-white/20">
           <div className="flex shrink-0 items-center justify-between border-b border-border p-4">
             <div className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-aws-orange">
@@ -267,7 +267,7 @@ export function ChatPanel() {
                       key={suggestion}
                       type="button"
                       onClick={() => handleSend(suggestion)}
-                      className="block w-full rounded-lg border border-border bg-secondary px-3 py-2 text-left text-sm hover:bg-secondary/80 transition-colors"
+                      className="block w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-left text-sm text-foreground hover:bg-white/10 transition-colors"
                     >
                       {suggestion}
                     </button>

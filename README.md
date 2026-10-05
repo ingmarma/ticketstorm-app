@@ -68,7 +68,7 @@ El servicio estrella del proyecto. Implementa un chatbot con Retrieval-Augmented
 - **Spring AI 2.0 GA** con `ChatClient` + vector store
 - **RAG Pipeline**: indexa eventos desde Event Catalog → embeddings en pgvector → búsqueda semántica
 - **ChatIntentResolver**: detección determinística de intents (BUY, VIEW_SECTIONS, VIEW_EVENT) con matching accent-insensitive
-- **Modelos**: Ollama (local) con `llama3.2` para chat y `nomic-embed-text` para embeddings, migrable a AWS Bedrock
+- **Modelos**: Ollama (local) con `llama3.2` / `nomic-embed-text`, o **AWS Bedrock** (producción) con Claude Haiku 4.5 + Titan Embed Text V2
 
 ```
 Usuario: "¿Qué conciertos hay en noviembre?"
@@ -94,12 +94,10 @@ ChatResponse { events, sections, action, sessionId }
 | Base de datos | PostgreSQL 16 + pgvector |
 | Cache | Redis 7 |
 | Mensajería | Apache Kafka 3.8 (KRaft mode) |
-| AI/ML | Ollama (local) / AWS Bedrock (producción) |
+| AI/ML | Ollama (local) / AWS Bedrock (producción): Claude Haiku 4.5 + Titan Embed Text V2 |
 | Monitoreo | Prometheus + Grafana (3 dashboards pre-provisioned) |
 | Contenedores | Docker + Docker Compose |
-| Orquestación | Kubernetes (EKS) |
 | IaC | Terraform |
-| CI/CD | GitHub Actions |
 
 ---
 
@@ -128,9 +126,9 @@ docker compose up -d
 # Verificar que todo esté healthy
 docker compose ps
 
-# Seed de datos (5 eventos + 35 secciones)
-docker compose exec postgres psql -U ticketstorm -d ticketstorm -f /docker-entrypoint-initdb.d/seed-events.sql
-docker compose exec postgres psql -U ticketstorm -d ticketstorm -f /docker-entrypoint-initdb.d/seed-sections.sql
+# Seed de datos (10 eventos + 51 secciones)
+docker compose exec -T postgres psql -U ticketstorm -d ticketstorm < scripts/seed-data.sql
+docker compose exec -T postgres psql -U ticketstorm -d ticketstorm < scripts/seed-sections.sql
 ```
 
 ### Con Ollama (chatbot AI)
@@ -178,15 +176,20 @@ GET    /actuator/prometheus            Métricas Prometheus
 
 ## Datos de Ejemplo
 
-5 eventos reales del mercado paraguayo con 35 secciones de tickets:
+10 eventos reales del mercado paraguayo con 51 secciones de tickets:
 
-| Evento | Venue | Capacidad | Precio desde |
-|--------|-------|-----------|-------------|
-| Coldplay - Music of the Spheres | Estadio Defensores del Chaco | 42,000 | ₲120.000 |
-| Bad Bunny - Most Wanted Tour | Arena Vila Morra | 8,500 | ₲120.000 |
-| Paraguay vs Argentina - Eliminatorias | Estadio Defensores del Chaco | 42,000 | ₲100.000 |
-| Romeo Santos - Formula Vol. 3 | Centro de Exposiciones | 12,000 | ₲250.000 |
-| Festival Asunciónico 2026 | Jockey Club Paraguay | 5,000 | ₲200.000 |
+| Evento | Categoría | Venue | Capacidad | Precio desde |
+|--------|-----------|-------|-----------|-------------|
+| Coldplay - Music of the Spheres | CONCERT | Estadio Defensores del Chaco | 42,000 | ₲120.000 |
+| Bad Bunny - Most Wanted Tour | CONCERT | Arena SAP | 8,500 | ₲120.000 |
+| Paraguay vs Argentina - Eliminatorias | SPORTS | Estadio Defensores del Chaco | 42,000 | ₲100.000 |
+| Romeo Santos - Fórmula Vol. 4 Tour | CONCERT | Centro de Exposiciones | 12,000 | ₲250.000 |
+| Festival Asunciónico 2026 | FESTIVAL | Jockey Club Paraguay | 5,000 | ₲200.000 |
+| El Fantasma de la Ópera | THEATER | Teatro Municipal de Asunción | 2,200 | ₲80.000 |
+| Rock del Paraguay | CONCERT | Arena Vila Morra | 8,500 | ₲65.000 |
+| Copa América de Básquetbol | SPORTS | Polideportivo CND | 15,000 | ₲70.000 |
+| Festival Gastronómico Internacional | FESTIVAL | Centro de Exposiciones | 12,000 | ₲70.000 |
+| Reveillon Asunción 2027 | FESTIVAL | Anfiteatro Ñandutí | 3,500 | ₲80.000 |
 
 ---
 
@@ -204,27 +207,36 @@ GET    /actuator/prometheus            Métricas Prometheus
 
 ### Arquitectura Cloud
 
-| Servicio AWS | Uso |
-|-------------|-----|
-| EKS (Kubernetes) | Orquestación de los 7 microservicios |
-| RDS PostgreSQL | Base de datos con pgvector |
-| ElastiCache Redis | Cache + cola virtual |
-| MSK (Kafka) | Event streaming |
-| Bedrock | Modelos de lenguaje (reemplaza Ollama) |
-| ECR | Registro de imágenes Docker |
-| CloudFront | CDN para el frontend |
+El despliegue en AWS utiliza una instancia EC2 con Docker Compose, manteniendo la misma topología que desarrollo local pero reemplazando Ollama por AWS Bedrock para inferencia AI.
+
+| Componente | Detalle |
+|-----------|---------|
+| **EC2** (m7i-flex.large) | Instancia con 8GB RAM, 2 vCPUs — ejecuta los 7 microservicios + infra via Docker Compose |
+| **AWS Bedrock** | Claude Haiku 4.5 (chat vía Converse API) + Titan Embed Text V2 (embeddings 1024d) |
+| **IAM Role** | Rol de instancia con política `AmazonBedrockFullAccess` para acceso a modelos |
+| **Terraform** | IaC completo: VPC, Security Groups, EC2, IAM, Elastic IP |
+| **Docker Compose** | Producción usa overlay: `docker-compose.yml` + `docker-compose.prod.yml` |
+
+### Perfiles Spring
+
+El servicio AI Discovery usa `SPRING_PROFILES_ACTIVE=aws` en producción, lo que activa:
+- `bedrock-converse` como proveedor de chat (Claude Haiku 4.5 con inference profile `us.`)
+- `bedrock-titan` como proveedor de embeddings (Titan Embed Text V2, 1024 dimensiones)
+- Desactiva Ollama automáticamente
 
 ### Deploy
 
 ```bash
-# Provisionar infraestructura
-cd terraform
-terraform init && terraform apply
-
-# Desplegar servicios
+# Provisionar infraestructura + desplegar todo
 ./scripts/aws-up.sh
 
-# Destruir (confirmar con "destroy")
+# El script ejecuta:
+# 1. Terraform init + apply (VPC, EC2, IAM, Elastic IP)
+# 2. Espera SSH + user-data setup (Docker, Java, Maven)
+# 3. Docker Compose build + up (con overlay prod)
+# 4. Seed de datos (10 eventos + 51 secciones)
+
+# Destruir infraestructura
 ./scripts/aws-down.sh
 ```
 
@@ -261,8 +273,10 @@ ticketstorm/
 ├── infrastructure/
 │   ├── prometheus/              # Configuración Prometheus
 │   └── grafana/                 # Dashboards + provisioning
-├── scripts/                     # SQL seeds, deploy scripts
+├── scripts/                     # SQL seeds, deploy scripts (aws-up.sh, aws-down.sh)
+├── terraform/                   # IaC: VPC, EC2, IAM, Security Groups
 ├── docker-compose.yml           # Orquestación local
+├── docker-compose.prod.yml      # Override para AWS (Bedrock, nginx frontend)
 └── pom.xml                      # Parent POM (Maven multi-module)
 ```
 

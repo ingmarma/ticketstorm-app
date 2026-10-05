@@ -3,19 +3,26 @@ spring:
     model:
       chat: bedrock-converse
       embedding: bedrock-titan
+    ollama:
+      chat:
+        enabled: false
+      embedding:
+        enabled: false
     bedrock:
       aws:
         region: ${AWS_REGION:us-east-2}
       converse:
         chat:
+          enabled: true
           options:
             model: us.anthropic.claude-haiku-4-5-20251001-v1:0
             temperature: 0.3
             max-tokens: 1024
       titan:
         embedding:
+          enabled: true
           model: amazon.titan-embed-text-v2:0
-          input-type: SEARCH_DOCUMENT
+          input-type: TEXT
     vectorstore:
       pgvector:
         dimensions: 1024
