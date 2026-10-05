@@ -9,6 +9,8 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-pgvector.sql:/docker-entrypoint-initdb.d/99-pgvector.sql:ro
+      - ./scripts/seed-data.sql:/seed/seed-data.sql:ro
+      - ./scripts/seed-sections.sql:/seed/seed-sections.sql:ro
     environment:
       POSTGRES_DB: ticketstorm
       POSTGRES_USER: ticketstorm
