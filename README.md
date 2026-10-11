@@ -1,8 +1,15 @@
 # TicketStorm
 
-**Sistema de reserva de entradas de alto rendimiento diseñado para 50M+ DAU con cero sobreventa.**
+[![Java 25](https://img.shields.io/badge/Java-25-ED8B00?logo=openjdk&logoColor=white)](https://openjdk.org/)
+[![Spring Boot 4.1](https://img.shields.io/badge/Spring%20Boot-4.1.0-6DB33F?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
+[![Spring AI 2.0.1](https://img.shields.io/badge/Spring%20AI-2.0.1%20GA-6DB33F?logo=spring&logoColor=white)](https://spring.io/projects/spring-ai)
+[![AWS Bedrock](https://img.shields.io/badge/AWS-Bedrock-FF9900?logo=amazonaws&logoColor=white)](https://aws.amazon.com/bedrock/)
+[![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-TicketStorm es una plataforma de ticketing para eventos construida con microservicios en Java 25 y Spring Boot 4.1. Integra búsqueda semántica con Spring AI, gestión de inventario en tiempo real con Redis, y procesamiento de reservas concurrentes con cuatro capas anti-sobreventa. Diseñada para el mercado paraguayo con precios en Guaraníes (₲).
+**Sistema de reserva de entradas de alto rendimiento diseñado para 50M+ DAU, 5M concurrentes, P99 < 500ms y cero sobreventa.**
+
+TicketStorm es una plataforma de ticketing para eventos construida con 7 microservicios en Java 25 y Spring Boot 4.1. Integra búsqueda semántica con Spring AI 2.0.1 + AWS Bedrock, gestión de inventario en tiempo real con Redis, y procesamiento de reservas concurrentes con cuatro capas anti-sobreventa. Diseñada para el mercado paraguayo con precios en Guaraníes (Gs.).
 
 > Presentado en [AWS Community Day Paraguay 2026](https://awscommunitydaypyco.com) — *"Spring AI + AWS Bedrock: Integrando Modelos de Lenguaje en Microservicios Java en Producción"*
 
@@ -52,6 +59,15 @@ TicketStorm es una plataforma de ticketing para eventos construida con microserv
 | **Notification** | 8086 | Notificaciones por email/push vía Kafka |
 | **AI Discovery** | 8087 | Chatbot RAG con Spring AI, búsqueda semántica |
 
+### Objetivos de Diseño
+
+| Métrica | Objetivo |
+|---------|----------|
+| Usuarios diarios (DAU) | 50M+ |
+| Concurrencia pico | 5M simultáneos |
+| Latencia checkout (P99) | < 500ms |
+| Sobreventa | **ZERO** — 4 capas de protección |
+
 ### Patrones de Diseño
 
 - **CQRS + Event Sourcing** — separación de comandos y consultas
@@ -65,7 +81,7 @@ TicketStorm es una plataforma de ticketing para eventos construida con microserv
 
 El servicio estrella del proyecto. Implementa un chatbot con Retrieval-Augmented Generation:
 
-- **Spring AI 2.0 GA** con `ChatClient` + vector store
+- **Spring AI 2.0.1 GA** con `ChatClient` + vector store
 - **RAG Pipeline**: indexa eventos desde Event Catalog → embeddings en pgvector → búsqueda semántica
 - **ChatIntentResolver**: detección determinística de intents (BUY, VIEW_SECTIONS, VIEW_EVENT) con matching accent-insensitive
 - **Modelos**: Ollama (local) con `llama3.2` / `nomic-embed-text`, o **AWS Bedrock** (producción) con Claude Haiku 4.5 + Titan Embed Text V2
@@ -89,7 +105,7 @@ ChatResponse { events, sections, action, sessionId }
 | Capa | Tecnología |
 |------|------------|
 | Lenguaje | Java 25 (Virtual Threads) |
-| Framework | Spring Boot 4.1.0 + Spring AI 2.0.1 |
+| Framework | Spring Boot 4.1.0 + Spring AI 2.0.1 GA |
 | Frontend | React 19, Vite 6, TanStack Query v5, Zustand v5, Tailwind CSS v4 |
 | Base de datos | PostgreSQL 16 + pgvector |
 | Cache | Redis 7 |
@@ -180,16 +196,16 @@ GET    /actuator/prometheus            Métricas Prometheus
 
 | Evento | Categoría | Venue | Capacidad | Precio desde |
 |--------|-----------|-------|-----------|-------------|
-| Coldplay - Music of the Spheres | CONCERT | Estadio Defensores del Chaco | 42,000 | ₲120.000 |
-| Bad Bunny - Most Wanted Tour | CONCERT | Arena SAP | 8,500 | ₲120.000 |
-| Paraguay vs Argentina - Eliminatorias | SPORTS | Estadio Defensores del Chaco | 42,000 | ₲100.000 |
-| Romeo Santos - Fórmula Vol. 4 Tour | CONCERT | Centro de Exposiciones | 12,000 | ₲250.000 |
-| Festival Asunciónico 2026 | FESTIVAL | Jockey Club Paraguay | 5,000 | ₲200.000 |
-| El Fantasma de la Ópera | THEATER | Teatro Municipal de Asunción | 2,200 | ₲80.000 |
-| Rock del Paraguay | CONCERT | Arena Vila Morra | 8,500 | ₲65.000 |
-| Copa América de Básquetbol | SPORTS | Polideportivo CND | 15,000 | ₲70.000 |
-| Festival Gastronómico Internacional | FESTIVAL | Centro de Exposiciones | 12,000 | ₲70.000 |
-| Reveillon Asunción 2027 | FESTIVAL | Anfiteatro Ñandutí | 3,500 | ₲80.000 |
+| Coldplay - Music of the Spheres | CONCERT | Estadio Defensores del Chaco | 42,000 | Gs. 120.000 |
+| Bad Bunny - Most Wanted Tour | CONCERT | Arena SAP | 8,500 | Gs. 120.000 |
+| Paraguay vs Argentina - Eliminatorias | SPORTS | Estadio Defensores del Chaco | 42,000 | Gs. 100.000 |
+| Romeo Santos - Fórmula Vol. 4 Tour | CONCERT | Centro de Exposiciones | 12,000 | Gs. 250.000 |
+| Festival Asunciónico 2026 | FESTIVAL | Jockey Club Paraguay | 5,000 | Gs. 200.000 |
+| El Fantasma de la Ópera | THEATER | Teatro Municipal de Asunción | 2,200 | Gs. 80.000 |
+| Rock del Paraguay | CONCERT | Arena Vila Morra | 8,500 | Gs. 65.000 |
+| Copa América de Básquetbol | SPORTS | Polideportivo CND | 15,000 | Gs. 70.000 |
+| Festival Gastronómico Internacional | FESTIVAL | Centro de Exposiciones | 12,000 | Gs. 70.000 |
+| Reveillon Asunción 2027 | FESTIVAL | Anfiteatro Ñandutí | 3,500 | Gs. 80.000 |
 
 ---
 
@@ -207,11 +223,11 @@ GET    /actuator/prometheus            Métricas Prometheus
 
 ### Arquitectura Cloud
 
-El despliegue en AWS utiliza una instancia EC2 con Docker Compose, manteniendo la misma topología que desarrollo local pero reemplazando Ollama por AWS Bedrock para inferencia AI.
+El despliegue en AWS utiliza una instancia EC2 con Docker Compose en la región **us-east-2 (Ohio)**, manteniendo la misma topología que desarrollo local pero reemplazando Ollama por AWS Bedrock para inferencia AI.
 
 | Componente | Detalle |
 |-----------|---------|
-| **EC2** (m7i-flex.large) | Instancia con 8GB RAM, 2 vCPUs — ejecuta los 7 microservicios + infra via Docker Compose |
+| **EC2** (m7i-flex.large) | 8GB RAM, 2 vCPUs — ejecuta los 7 microservicios + infra via Docker Compose |
 | **AWS Bedrock** | Claude Haiku 4.5 (chat vía Converse API) + Titan Embed Text V2 (embeddings 1024d) |
 | **IAM Role** | Rol de instancia con política `AmazonBedrockFullAccess` para acceso a modelos |
 | **Terraform** | IaC completo: VPC, Security Groups, EC2, IAM, Elastic IP |
@@ -223,6 +239,17 @@ El servicio AI Discovery usa `SPRING_PROFILES_ACTIVE=aws` en producción, lo que
 - `bedrock-converse` como proveedor de chat (Claude Haiku 4.5 con inference profile `us.`)
 - `bedrock-titan` como proveedor de embeddings (Titan Embed Text V2, 1024 dimensiones)
 - Desactiva Ollama automáticamente
+
+### Costos de AWS Bedrock
+
+| Modelo | Input | Output | Uso |
+|--------|-------|--------|-----|
+| Claude Haiku 4.5 | $1.00 / 1M tokens | $5.00 / 1M tokens | Chat (Converse API) |
+| Titan Embed Text V2 | $0.02 / 1M tokens | — | Embeddings (1024d) |
+
+**Costo por interacción de chatbot**: ~$0.0034 (1,350 tokens input + 400 tokens output)
+
+Para un evento sold-out de 40K asientos, la comisión del 1% genera ~$20,467 USD. Con un 20% de adopción del chatbot, el costo de Bedrock sería ~$251 USD — la comisión cubre **81x el costo de la IA**. Bedrock representa apenas el 1.2% de la comisión.
 
 ### Deploy
 
@@ -284,9 +311,10 @@ ticketstorm/
 
 ## Autor
 
-**Matías Martínez** — SRE & Backend Engineer
+**Matías Martínez** — SRE & Backend Engineer en [NFD S.A. / Billetera Wally](https://www.billetera.com.py)
 
 - GitHub: [@ingmarma](https://github.com/ingmarma)
+- LinkedIn: [Matías Martínez](https://www.linkedin.com/in/matiasmartinez2108)
 
 ---
 
